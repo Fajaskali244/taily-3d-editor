@@ -20,7 +20,7 @@ export const ProductCard = ({ name, price, image, onSelect }: ProductCardProps) 
           />
         </div>
         <h3 className="font-semibold text-lg mb-2">{name}</h3>
-        <p className="text-2xl font-bold text-primary mb-4">${price}</p>
+        <p className="text-2xl font-bold text-primary mb-4">IDR 10,000</p>
         <Button 
           variant="outline" 
           className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
