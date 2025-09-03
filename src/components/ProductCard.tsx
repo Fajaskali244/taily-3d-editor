@@ -33,7 +33,7 @@ export const ProductCard = ({ name, price, image, type = 'bead', color = '#00000
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
         </div>
         <h4 className="font-medium text-sm mb-1 text-center truncate">{name}</h4>
-        <p className="text-xs text-primary font-semibold text-center">IDR 10,000</p>
+        <p className="text-xs text-primary font-semibold text-center">IDR 12,000</p>
       </CardContent>
     </Card>
   )

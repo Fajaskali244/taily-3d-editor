@@ -23,19 +23,19 @@ interface SelectedItem {
 
 const products = {
   beads: [
-    { name: "Owl Face Beads", price: 10, image: owlBeads, color: "#8B4513" },
-    { name: "Blue Glitter Beads", price: 10, image: blueGlitterBeads, color: "#4169E1" },
-    { name: "Black Pattern Beads", price: 10, image: blackPatternBeads, color: "#2F2F2F" },
-    { name: "Sports Beads", price: 10, image: sportsBeads, color: "#FF6347" }
+    { name: "Owl Face Beads", price: 12000, image: owlBeads, color: "#8B4513" },
+    { name: "Blue Glitter Beads", price: 12000, image: blueGlitterBeads, color: "#4169E1" },
+    { name: "Black Pattern Beads", price: 12000, image: blackPatternBeads, color: "#2F2F2F" },
+    { name: "Sports Beads", price: 12000, image: sportsBeads, color: "#FF6347" }
   ],
   charms: [
-    { name: "Heart Charm", price: 10, image: heartCharm, color: "#FF69B4" },
-    { name: "Star Charm", price: 10, image: starCharm, color: "#FFD700" },
-    { name: "Moon Charm", price: 10, image: moonCharm, color: "#C0C0C0" }
+    { name: "Heart Charm", price: 12000, image: heartCharm, color: "#FF69B4" },
+    { name: "Star Charm", price: 12000, image: starCharm, color: "#FFD700" },
+    { name: "Moon Charm", price: 12000, image: moonCharm, color: "#C0C0C0" }
   ],
   keyrings: [
-    { name: "Classic Ring", price: 10, image: classicKeyring, color: "#C0C0C0" },
-    { name: "Premium Ring", price: 10, image: premiumKeyring, color: "#FFD700" }
+    { name: "Classic Ring", price: 12000, image: classicKeyring, color: "#C0C0C0" },
+    { name: "Premium Ring", price: 12000, image: premiumKeyring, color: "#FFD700" }
   ]
 }
 
@@ -52,7 +52,11 @@ export const Customizer = () => {
     setSelectedItems([])
   }
 
-  const totalPrice = selectedItems.length * 10000
+  const totalPrice = selectedItems.reduce((sum, item) => {
+    const allProducts = [...products.beads, ...products.charms, ...products.keyrings]
+    const product = allProducts.find(p => p.name === item.name)
+    return sum + (product?.price || 0)
+  }, 0)
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
@@ -103,12 +107,16 @@ export const Customizer = () => {
               <div className="bg-card p-6 rounded-lg border mt-6">
                 <h4 className="font-semibold mb-4">Your Design</h4>
                 <div className="space-y-2 mb-4">
-                  {selectedItems.map((item, index) => (
-                    <div key={index} className="flex justify-between text-sm">
-                      <span>{item.name}</span>
-                      <span>IDR 10,000</span>
-                    </div>
-                  ))}
+                  {selectedItems.map((item, index) => {
+                    const allProducts = [...products.beads, ...products.charms, ...products.keyrings]
+                    const product = allProducts.find(p => p.name === item.name)
+                    return (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>{item.name}</span>
+                        <span>IDR {(product?.price || 0).toLocaleString()}</span>
+                      </div>
+                    )
+                  })}
                 </div>
                 <div className="border-t pt-4 mb-4">
                   <div className="flex justify-between font-semibold">
