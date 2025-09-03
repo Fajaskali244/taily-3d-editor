@@ -47,10 +47,7 @@ export const Customizer = () => {
     setSelectedItems([])
   }
 
-  const totalPrice = selectedItems.reduce((sum, item) => {
-    const product = Object.values(products).flat().find(p => p.name === item.name)
-    return sum + (product?.price || 0)
-  }, 0)
+  const totalPrice = selectedItems.length * 10000
 
   return (
     <section className="py-20 px-4 bg-background">
@@ -139,7 +136,7 @@ export const Customizer = () => {
                 <div className="border-t pt-4 mb-4">
                   <div className="flex justify-between font-semibold">
                     <span>Total:</span>
-                    <span>${totalPrice}</span>
+                    <span>IDR {totalPrice.toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
