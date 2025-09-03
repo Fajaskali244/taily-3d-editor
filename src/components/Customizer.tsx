@@ -9,6 +9,11 @@ import owlBeads from "@/assets/owl-beads.jpg"
 import blueGlitterBeads from "@/assets/blue-glitter-beads.jpg"
 import blackPatternBeads from "@/assets/black-pattern-beads.jpg"
 import sportsBeads from "@/assets/sports-beads.jpg"
+import heartCharm from "@/assets/heart-charm.jpg"
+import starCharm from "@/assets/star-charm.jpg"
+import moonCharm from "@/assets/moon-charm.jpg"
+import classicKeyring from "@/assets/classic-keyring.jpg"
+import premiumKeyring from "@/assets/premium-keyring.jpg"
 
 interface SelectedItem {
   type: 'bead' | 'charm' | 'keyring'
@@ -18,19 +23,19 @@ interface SelectedItem {
 
 const products = {
   beads: [
-    { name: "Owl Face Beads", price: 12, image: owlBeads, color: "#8B4513" },
-    { name: "Blue Glitter Beads", price: 8, image: blueGlitterBeads, color: "#4169E1" },
+    { name: "Owl Face Beads", price: 10, image: owlBeads, color: "#8B4513" },
+    { name: "Blue Glitter Beads", price: 10, image: blueGlitterBeads, color: "#4169E1" },
     { name: "Black Pattern Beads", price: 10, image: blackPatternBeads, color: "#2F2F2F" },
-    { name: "Sports Beads", price: 15, image: sportsBeads, color: "#FF6347" }
+    { name: "Sports Beads", price: 10, image: sportsBeads, color: "#FF6347" }
   ],
   charms: [
-    { name: "Heart Charm", price: 18, image: "/placeholder-charm.jpg", color: "#FF69B4" },
-    { name: "Star Charm", price: 16, image: "/placeholder-charm.jpg", color: "#FFD700" },
-    { name: "Moon Charm", price: 20, image: "/placeholder-charm.jpg", color: "#C0C0C0" }
+    { name: "Heart Charm", price: 10, image: heartCharm, color: "#FF69B4" },
+    { name: "Star Charm", price: 10, image: starCharm, color: "#FFD700" },
+    { name: "Moon Charm", price: 10, image: moonCharm, color: "#C0C0C0" }
   ],
   keyrings: [
-    { name: "Classic Ring", price: 5, image: "/placeholder-keyring.jpg", color: "#C0C0C0" },
-    { name: "Premium Ring", price: 8, image: "/placeholder-keyring.jpg", color: "#FFD700" }
+    { name: "Classic Ring", price: 10, image: classicKeyring, color: "#C0C0C0" },
+    { name: "Premium Ring", price: 10, image: premiumKeyring, color: "#FFD700" }
   ]
 }
 
@@ -49,81 +54,53 @@ export const Customizer = () => {
 
   const totalPrice = selectedItems.length * 10000
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const itemData = e.dataTransfer.getData('application/json')
+    if (itemData) {
+      const { type, name, color } = JSON.parse(itemData)
+      addItem(type, name, color)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const allProducts = [...products.beads, ...products.charms, ...products.keyrings]
+
   return (
     <section className="py-20 px-4 bg-background">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">Design Your Keychain</h2>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">Interactive Keychain Designer</h2>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Choose from our curated selection of beads, charms, and keyrings to create your perfect accessory
+            Drag and drop beads, charms, and keyrings onto the 3D visualizer to create your perfect keychain
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Customization Panel */}
-          <div className="lg:col-span-2">
-            <h3 className="text-2xl font-semibold mb-6">Customize Your Design</h3>
-            
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3 mb-8">
-                <TabsTrigger value="beads">Beads</TabsTrigger>
-                <TabsTrigger value="charms">Charms</TabsTrigger>
-                <TabsTrigger value="keyrings">Keyrings</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="beads">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {products.beads.map((product) => (
-                    <ProductCard
-                      key={product.name}
-                      name={product.name}
-                      price={product.price}
-                      image={product.image}
-                      onSelect={() => addItem('bead', product.name, product.color)}
-                    />
-                  ))}
+        <div className="grid lg:grid-cols-2 gap-12">
+          {/* 3D Visualizer - Left Side */}
+          <div className="order-2 lg:order-1">
+            <div className="bg-card rounded-xl border-2 border-dashed border-primary/20 p-6">
+              <h3 className="text-2xl font-semibold mb-4 text-center">3D Visualizer</h3>
+              <div 
+                className="relative min-h-[500px] bg-gradient-to-b from-muted/30 to-muted/10 rounded-lg"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
+                <ThreeViewer selectedItems={selectedItems} />
+                <div className="absolute inset-x-0 bottom-4 text-center">
+                  <p className="text-sm text-muted-foreground bg-background/80 rounded-full px-4 py-2 inline-block">
+                    Drop items here to add to your keychain
+                  </p>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="charms">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {products.charms.map((product) => (
-                    <ProductCard
-                      key={product.name}
-                      name={product.name}
-                      price={product.price}
-                      image={product.image}
-                      onSelect={() => addItem('charm', product.name, product.color)}
-                    />
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="keyrings">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {products.keyrings.map((product) => (
-                    <ProductCard
-                      key={product.name}
-                      name={product.name}
-                      price={product.price}
-                      image={product.image}
-                      onSelect={() => addItem('keyring', product.name, product.color)}
-                    />
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* 3D Preview Panel */}
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-2xl font-semibold mb-4">3D Preview</h3>
-              <ThreeViewer selectedItems={selectedItems} />
+              </div>
             </div>
 
+            {/* Order Summary */}
             {selectedItems.length > 0 ? (
-              <div className="bg-card p-6 rounded-lg border">
+              <div className="bg-card p-6 rounded-lg border mt-6">
                 <h4 className="font-semibold mb-4">Your Design</h4>
                 <div className="space-y-2 mb-4">
                   {selectedItems.map((item, index) => (
@@ -149,10 +126,34 @@ export const Customizer = () => {
                 </div>
               </div>
             ) : (
-              <div className="bg-muted/30 p-6 rounded-lg text-center">
-                <p className="text-muted-foreground">Start selecting items to see your design</p>
+              <div className="bg-muted/30 p-6 rounded-lg text-center mt-6">
+                <p className="text-muted-foreground">Drag items to the visualizer to start designing</p>
               </div>
             )}
+          </div>
+
+          {/* Selection Grid - Right Side */}
+          <div className="order-1 lg:order-2">
+            <h3 className="text-2xl font-semibold mb-6">Selection Panel</h3>
+            <div className="bg-card p-6 rounded-lg border">
+              <div className="grid grid-cols-4 gap-4">
+                {allProducts.map((product, index) => (
+                  <ProductCard
+                    key={`${product.name}-${index}`}
+                    name={product.name}
+                    price={product.price}
+                    image={product.image}
+                    type={index < 4 ? 'bead' : index < 7 ? 'charm' : 'keyring'}
+                    color={product.color}
+                    onSelect={() => addItem(
+                      index < 4 ? 'bead' : index < 7 ? 'charm' : 'keyring', 
+                      product.name, 
+                      product.color
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
