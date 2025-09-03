@@ -132,7 +132,7 @@ export const Customizer = () => {
                   {selectedItems.map((item, index) => (
                     <div key={index} className="flex justify-between text-sm">
                       <span>{item.name}</span>
-                      <span>${Object.values(products).flat().find(p => p.name === item.name)?.price}</span>
+                      <span>IDR 10,000</span>
                     </div>
                   ))}
                 </div>
