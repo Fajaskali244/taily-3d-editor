@@ -54,9 +54,11 @@ export const Customizer = () => {
     setSelectedItems([])
   }
 
+  const allProducts = [...products.beads, ...products.charms, ...products.keyrings]
+
   const totalPrice = selectedItems.reduce((total, item) => {
-    const productIndex = allProducts.findIndex(p => p.name === item.name)
-    return total + (productIndex >= 0 ? allProducts[productIndex].price : 12000)
+    const product = allProducts.find(p => p.name === item.name)
+    return total + (product ? product.price : 12000)
   }, 0)
 
   const handleDrop = (e: React.DragEvent) => {
@@ -71,8 +73,6 @@ export const Customizer = () => {
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
   }
-
-  const allProducts = [...products.beads, ...products.charms, ...products.keyrings]
 
   return (
     <section className="py-20 px-4 bg-background">
@@ -109,8 +109,8 @@ export const Customizer = () => {
                 <h4 className="font-semibold mb-4">Your Design</h4>
                 <div className="space-y-2 mb-4">
                   {selectedItems.map((item, index) => {
-                    const productIndex = allProducts.findIndex(p => p.name === item.name)
-                    const price = productIndex >= 0 ? allProducts[productIndex].price : 12000
+                    const product = allProducts.find(p => p.name === item.name)
+                    const price = product ? product.price : 12000
                     return (
                       <div key={index} className="flex justify-between text-sm">
                         <span>{item.name}</span>
