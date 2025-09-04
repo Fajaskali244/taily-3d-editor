@@ -12,7 +12,7 @@ import blueCollection from "/lovable-uploads/ca0615bb-75c5-4398-9a39-e1f376b726d
 import flowerBeads from "/lovable-uploads/70150852-96f4-4647-b1f8-03e1d9738845.png"
 import colorfulRings from "/lovable-uploads/fd0f7a7f-a63f-4048-98df-08e67d9bf4c9.png"
 import pearlCollection1 from "/lovable-uploads/0e9e26b5-e325-47fb-869d-d7d8c89701d8.png"
-import pearlCollection2 from "/lovable-uploads/9b3f6bab-6e07-4471-9b25-85617758e728.png"
+import colorfulCord from "/lovable-uploads/42ee9036-1ee1-4c01-a72c-b4a7beb16f61.png"
 import starKeyringSet from "/lovable-uploads/6bffac37-9623-4fdc-af3a-13882dc2413e.png"
 import cableKeyrings from "/lovable-uploads/d526390d-9f3f-4601-b328-c13bc384c0a6.png"
 
@@ -30,7 +30,7 @@ const products = {
     { name: "Blue Star Beads", price: 12000, image: blueCollection, color: "#4169E1" },
     { name: "Flower Beads Set", price: 12000, image: flowerBeads, color: "#FF6347" },
     { name: "Pearl Collection White", price: 12000, image: pearlCollection1, color: "#F5F5DC" },
-    { name: "Pearl Collection Cream", price: 12000, image: pearlCollection2, color: "#FFFDD0" }
+    { name: "Colorful Cord Collection", price: 12000, image: colorfulCord, color: "#FF69B4" }
   ],
   charms: [
     { name: "Star Keyring & Beads", price: 12000, image: starKeyringSet, color: "#FFD700" }
