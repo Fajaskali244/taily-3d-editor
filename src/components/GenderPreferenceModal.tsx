@@ -10,22 +10,15 @@ export const GenderPreferenceModal = ({ onPreferenceSelect }: GenderPreferenceMo
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
-    // Check if user has already made a preference selection
-    const savedPreference = localStorage.getItem('gender-preference')
-    if (!savedPreference) {
-      // Small delay to ensure smooth page load
-      const timer = setTimeout(() => {
-        setIsOpen(true)
-      }, 500)
-      return () => clearTimeout(timer)
-    } else {
-      // Apply saved preference immediately
-      onPreferenceSelect(savedPreference as 'him' | 'her')
-    }
-  }, [onPreferenceSelect])
+    // Show modal automatically on every page load/refresh
+    const timer = setTimeout(() => {
+      setIsOpen(true)
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleSelection = (preference: 'him' | 'her') => {
-    localStorage.setItem('gender-preference', preference)
+    // Don't save to localStorage - session only
     onPreferenceSelect(preference)
     setIsOpen(false)
   }

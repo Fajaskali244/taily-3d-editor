@@ -17,13 +17,8 @@ const Index = () => {
     }
   }
 
-  // Check for saved preference on mount
-  useEffect(() => {
-    const saved = localStorage.getItem('gender-preference')
-    if (saved) {
-      handlePreferenceSelect(saved as 'him' | 'her')
-    }
-  }, [])
+  // Remove saved preference check - always start fresh
+  // No useEffect needed since we want modal to show every time
 
   return (
     <div className="min-h-screen">
