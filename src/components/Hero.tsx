@@ -1,6 +1,10 @@
 import { Button } from "@/components/ui/hero-button"
 
-export const Hero = () => {
+interface HeroProps {
+  genderPreference: 'him' | 'her'
+}
+
+export const Hero = ({ genderPreference }: HeroProps) => {
   return (
     <section className="min-h-screen bg-gradient-primary flex items-center justify-center px-4">
       <div className="max-w-4xl mx-auto text-center text-white">
@@ -13,11 +17,13 @@ export const Hero = () => {
         
         <div className="mb-12">
           <h2 className="text-3xl md:text-5xl font-semibold mb-6">
-            Create Your Perfect Keychain with AI
+            Create {genderPreference === 'him' ? 'His' : 'Her'} Perfect Keychain with AI
           </h2>
           <p className="text-lg md:text-xl opacity-80 max-w-2xl mx-auto leading-relaxed">
-            Experience the future of personalization with our interactive 3D platform. 
-            Design keychains that tell your story through AI-powered recommendations and real-time visualization.
+            {genderPreference === 'him' 
+              ? 'Design bold, masculine keychains with geometric patterns and tech-inspired elements. Build something that reflects strength and style.'
+              : 'Experience the future of personalization with our interactive 3D platform. Design keychains that tell your story through AI-powered recommendations and real-time visualization.'
+            }
           </p>
         </div>
 

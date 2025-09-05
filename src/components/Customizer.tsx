@@ -22,7 +22,11 @@ interface SelectedItem {
   color: string
 }
 
-const products = {
+interface CustomizerProps {
+  genderPreference: 'him' | 'her'
+}
+
+const productsForHer = {
   beads: [
     { name: "Mixed Beads Collection", price: 6500, image: mixedBeads1, color: "#8B4513" },
     { name: "Green Rose Beads", price: 5200, image: greenCollection, color: "#4169E1" },
@@ -41,7 +45,25 @@ const products = {
   ]
 }
 
-export const Customizer = () => {
+const productsForHim = {
+  beads: [
+    { name: "Black Pattern Beads", price: 6000, image: mixedBeads1, color: "#1C1C1C" },
+    { name: "Steel Blue Collection", price: 5500, image: greenCollection, color: "#4682B4" },
+    { name: "Charcoal Geometric", price: 6200, image: blueCollection, color: "#36454F" },
+    { name: "Silver Metal Beads", price: 5800, image: pearlCollection1, color: "#C0C0C0" },
+    { name: "Carbon Fiber Style", price: 6400, image: colorfulCord, color: "#2F2F2F" }
+  ],
+  charms: [
+    { name: "Tech Controller Charm", price: 6000, image: starKeyringSet, color: "#1E3A8A" },
+    { name: "Geometric Metal Charm", price: 5700, image: cableKeyrings, color: "#374151" }
+  ],
+  keyrings: [
+    { name: "Tactical Keyring", price: 5600, image: colorfulRings, color: "#1F2937" },
+    { name: "Industrial Cable Rings", price: 6800, image: cableKeyrings, color: "#4B5563" }
+  ]
+}
+
+export const Customizer = ({ genderPreference }: CustomizerProps) => {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([])
   const [activeTab, setActiveTab] = useState("beads")
 
@@ -54,6 +76,7 @@ export const Customizer = () => {
     setSelectedItems([])
   }
 
+  const products = genderPreference === 'him' ? productsForHim : productsForHer
   const allProducts = [...products.beads, ...products.charms, ...products.keyrings]
 
   const totalPrice = selectedItems.reduce((total, item) => {
@@ -152,10 +175,10 @@ export const Customizer = () => {
                     name={product.name}
                     price={product.price}
                     image={product.image}
-                    type={index < 7 ? 'bead' : index < 8 ? 'charm' : 'keyring'}
+                    type={index < products.beads.length ? 'bead' : index < products.beads.length + products.charms.length ? 'charm' : 'keyring'}
                     color={product.color}
                     onSelect={() => addItem(
-                      index < 7 ? 'bead' : index < 8 ? 'charm' : 'keyring', 
+                      index < products.beads.length ? 'bead' : index < products.beads.length + products.charms.length ? 'charm' : 'keyring', 
                       product.name, 
                       product.color
                     )}

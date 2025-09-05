@@ -6,11 +6,18 @@
 
 @layer base {
   :root {
-    /* Core gradient colors for Taily brand */
+    /* Core gradient colors for Taily brand - Feminine (default) */
     --gradient-start: 322 100% 85%; /* Pink */
     --gradient-end: 204 100% 75%;   /* Blue */
     --gradient-primary: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
     --gradient-secondary: linear-gradient(180deg, hsl(var(--gradient-start) / 0.1), hsl(var(--gradient-end) / 0.1));
+    
+    /* Masculine theme colors */
+    --masculine-gradient-start: 220 20% 15%; /* Charcoal */
+    --masculine-gradient-end: 215 50% 25%;   /* Navy */
+    --masculine-accent: 200 100% 65%;        /* Electric blue */
+    --masculine-gradient-primary: linear-gradient(135deg, hsl(var(--masculine-gradient-start)), hsl(var(--masculine-gradient-end)));
+    --masculine-gradient-secondary: linear-gradient(180deg, hsl(var(--masculine-gradient-start) / 0.1), hsl(var(--masculine-gradient-end) / 0.1));
     
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
@@ -26,6 +33,12 @@
 
     --secondary: 204 100% 65%; /* Blue theme */
     --secondary-foreground: 0 0% 100%;
+    
+    /* Masculine primary colors */
+    --masculine-primary: 200 100% 65%; /* Electric blue */
+    --masculine-primary-foreground: 0 0% 100%;
+    --masculine-secondary: 220 20% 25%; /* Dark charcoal */
+    --masculine-secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
@@ -105,5 +118,18 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Masculine theme overrides */
+  body.masculine-theme {
+    --gradient-start: var(--masculine-gradient-start);
+    --gradient-end: var(--masculine-gradient-end);
+    --gradient-primary: var(--masculine-gradient-primary);
+    --gradient-secondary: var(--masculine-gradient-secondary);
+    --primary: var(--masculine-primary);
+    --primary-foreground: var(--masculine-primary-foreground);
+    --secondary: var(--masculine-secondary);
+    --secondary-foreground: var(--masculine-secondary-foreground);
+    --accent: var(--masculine-accent);
   }
 }
