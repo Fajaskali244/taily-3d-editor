@@ -33,11 +33,11 @@ const products = {
     { name: "Colorful Cord Collection", price: 5400, image: colorfulCord, color: "#FF69B4" }
   ],
   charms: [
-    { name: "Star Keyring & Beads", price: 12000, image: starKeyringSet, color: "#FFD700" }
+    { name: "Star Keyring & Beads", price: 6000, image: starKeyringSet, color: "#FFD700" }
   ],
   keyrings: [
-    { name: "Colorful Beaded Rings", price: 12000, image: colorfulRings, color: "#32CD32" },
-    { name: "Cable Keyrings", price: 12000, image: cableKeyrings, color: "#87CEEB" }
+    { name: "Colorful Beaded Rings", price: 5000, image: colorfulRings, color: "#32CD32" },
+    { name: "Cable Keyrings", price: 7000, image: cableKeyrings, color: "#87CEEB" }
   ]
 }
 
