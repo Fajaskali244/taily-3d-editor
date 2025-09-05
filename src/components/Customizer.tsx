@@ -24,13 +24,13 @@ interface SelectedItem {
 
 const products = {
   beads: [
-    { name: "Mixed Beads Collection", price: 12000, image: mixedBeads1, color: "#8B4513" },
-    { name: "Green Rose Beads", price: 12000, image: greenCollection, color: "#4169E1" },
-    { name: "Pink Heart Collection", price: 12000, image: pinkCollection, color: "#FF69B4" },
-    { name: "Blue Star Beads", price: 12000, image: blueCollection, color: "#4169E1" },
-    { name: "Flower Beads Set", price: 12000, image: flowerBeads, color: "#FF6347" },
-    { name: "Pearl Collection White", price: 12000, image: pearlCollection1, color: "#F5F5DC" },
-    { name: "Colorful Cord Collection", price: 12000, image: colorfulCord, color: "#FF69B4" }
+    { name: "Mixed Beads Collection", price: 6500, image: mixedBeads1, color: "#8B4513" },
+    { name: "Green Rose Beads", price: 5200, image: greenCollection, color: "#4169E1" },
+    { name: "Pink Heart Collection", price: 6800, image: pinkCollection, color: "#FF69B4" },
+    { name: "Blue Star Beads", price: 5700, image: blueCollection, color: "#4169E1" },
+    { name: "Flower Beads Set", price: 6100, image: flowerBeads, color: "#FF6347" },
+    { name: "Pearl Collection White", price: 7000, image: pearlCollection1, color: "#F5F5DC" },
+    { name: "Colorful Cord Collection", price: 5400, image: colorfulCord, color: "#FF69B4" }
   ],
   charms: [
     { name: "Star Keyring & Beads", price: 12000, image: starKeyringSet, color: "#FFD700" }
