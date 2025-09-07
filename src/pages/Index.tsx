@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Hero } from "@/components/Hero"
 import { Customizer } from "@/components/Customizer"
 import { GenderPreferenceModal } from "@/components/GenderPreferenceModal"
+import Navigation from "@/components/Navigation"
 
 const Index = () => {
   const [genderPreference, setGenderPreference] = useState<'him' | 'her'>('her')
@@ -22,6 +23,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      <Navigation />
       <GenderPreferenceModal onPreferenceSelect={handlePreferenceSelect} />
       <Hero genderPreference={genderPreference} />
       <Customizer genderPreference={genderPreference} />

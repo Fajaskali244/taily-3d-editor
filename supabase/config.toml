@@ -1,1 +1,10 @@
 project_id = "npvkyiujvxyrrqdyrhas"
+
+[functions.xendit-payment-proxy]
+verify_jwt = false
+
+[functions.send-order-confirmation]
+verify_jwt = false
+
+[functions.openai-assistant-proxy]
+verify_jwt = false
