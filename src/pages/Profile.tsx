@@ -68,43 +68,85 @@ const Profile = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user || !profile) return
+    
+    // Verify user is logged in
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your profile",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!profile) {
+      toast({
+        title: "Error",
+        description: "Profile data is missing",
+        variant: "destructive"
+      })
+      return
+    }
 
     setSaving(true)
 
     try {
-      const { data, error } = await supabase
+      // First try to update existing profile
+      const { data: updateData, error: updateError } = await supabase
         .from('profiles')
-        .upsert({
-          user_id: user.id,
+        .update({
           username: profile.username,
           full_name: profile.full_name,
           phone_number: profile.phone_number,
           address: profile.address
         })
+        .eq('user_id', user.id)
         .select()
 
-      if (error) {
-        console.error('Error saving profile:', error)
-        toast({
-          title: "Error",
-          description: "Failed to save profile",
-          variant: "destructive"
-        })
+      if (updateError) {
+        console.error('Error updating profile:', updateError)
+        
+        // If update failed because no row exists, try insert
+        if (updateError.code === 'PGRST116' || updateData?.length === 0) {
+          const { data: insertData, error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: user.id,
+              username: profile.username,
+              full_name: profile.full_name,
+              phone_number: profile.phone_number,
+              address: profile.address
+            })
+            .select()
+
+          if (insertError) {
+            console.error('Error creating profile:', insertError)
+            throw new Error(`Failed to create profile: ${insertError.message}`)
+          }
+
+          if (insertData && insertData[0]) {
+            setProfile(insertData[0])
+          }
+        } else {
+          throw new Error(`Failed to update profile: ${updateError.message}`)
+        }
       } else {
-        toast({
-          title: "Success",
-          description: "Profile updated successfully!"
-        })
-        if (data && data[0]) {
-          setProfile(data[0])
+        if (updateData && updateData[0]) {
+          setProfile(updateData[0])
         }
       }
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully!"
+      })
+
     } catch (error) {
-      console.error('Error:', error)
+      console.error('Profile save error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: `Failed to save profile: ${errorMessage}`,
         variant: "destructive"
       })
     } finally {
