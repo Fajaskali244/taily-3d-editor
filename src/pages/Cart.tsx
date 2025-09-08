@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react'
+import { Loader2, Minus, Plus, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react'
 
 interface CartItem {
   id: string
@@ -23,6 +24,7 @@ const PRICE_PER_KEYCHAIN = 25.00
 const Cart = () => {
   const { user } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
@@ -157,6 +159,14 @@ const Cart = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="mb-4 flex items-center"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Continue Shopping
+          </Button>
           <h1 className="text-3xl font-bold flex items-center">
             <ShoppingCart className="mr-3 h-8 w-8" />
             Shopping Cart

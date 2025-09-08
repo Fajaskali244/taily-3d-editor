@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
+import { ArrowLeft } from 'lucide-react'
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false)
@@ -98,6 +99,18 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="flex items-center justify-between mb-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate(-1)}
+              className="flex items-center"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <div></div>
+          </div>
           <CardTitle className="text-2xl font-bold">Welcome to Taily</CardTitle>
           <CardDescription>Sign in to your account or create a new one</CardDescription>
         </CardHeader>

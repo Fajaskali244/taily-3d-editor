@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Plus, Trash2 } from 'lucide-react'
+import { Loader2, Plus, Trash2, ArrowLeft } from 'lucide-react'
 
 interface Design {
   id: string
@@ -16,6 +17,7 @@ interface Design {
 const MyDesigns = () => {
   const { user } = useAuth()
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [designs, setDesigns] = useState<Design[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -128,6 +130,14 @@ const MyDesigns = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="mb-4 flex items-center"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
           <h1 className="text-3xl font-bold">My Designs</h1>
           <p className="text-muted-foreground">View and manage your keychain designs</p>
         </div>
