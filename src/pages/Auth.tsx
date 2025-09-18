@@ -8,9 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { ArrowLeft } from 'lucide-react'
+import { PasswordStrength } from '@/components/PasswordStrength'
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false)
+  const [isPasswordStrong, setIsPasswordStrong] = useState(false)
   const { signIn, signUp, resetPassword } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -201,8 +203,12 @@ const Auth = () => {
                     onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
                     required
                   />
+                  <PasswordStrength 
+                    password={signUpData.password} 
+                    onStrengthChange={setIsPasswordStrong}
+                  />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || !isPasswordStrong}>
                   {isLoading ? 'Creating account...' : 'Sign Up'}
                 </Button>
               </form>
