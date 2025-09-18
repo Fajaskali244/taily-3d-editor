@@ -6,6 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Plus, Trash2, ArrowLeft } from 'lucide-react'
+import { 
+  getGuestDesigns, 
+  deleteGuestDesign, 
+  addToGuestCart,
+  type GuestDesign 
+} from '@/lib/guestStorage'
+import { useGuestMigration } from '@/hooks/useGuestMigration'
 
 interface Design {
   id: string
@@ -14,17 +21,24 @@ interface Design {
   created_at: string
 }
 
+type CombinedDesign = Design | (GuestDesign & { preview_url: string | null; created_at: string })
+
 const MyDesigns = () => {
   const { user } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const [designs, setDesigns] = useState<Design[]>([])
+  const [designs, setDesigns] = useState<CombinedDesign[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
+  
+  // Handle guest data migration when user logs in
+  useGuestMigration()
 
   useEffect(() => {
     if (user) {
       fetchDesigns()
+    } else {
+      fetchGuestDesigns()
     }
   }, [user])
 
@@ -55,26 +69,54 @@ const MyDesigns = () => {
     }
   }
 
+  const fetchGuestDesigns = () => {
+    try {
+      const guestDesigns = getGuestDesigns()
+      const formattedDesigns: CombinedDesign[] = guestDesigns.map(design => ({
+        id: design.id,
+        name: design.name,
+        preview_url: design.previewUrl || null,
+        created_at: design.createdAt
+      }))
+      setDesigns(formattedDesigns)
+    } catch (error) {
+      console.error('Error fetching guest designs:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleDelete = async (designId: string) => {
-    if (!user || !confirm('Are you sure you want to delete this design?')) return
+    if (!confirm('Are you sure you want to delete this design?')) return
 
     setDeleting(designId)
 
     try {
-      const { error } = await supabase
-        .from('designs')
-        .delete()
-        .eq('id', designId)
-        .eq('user_id', user.id)
+      if (user) {
+        // Delete from database for authenticated users
+        const { error } = await supabase
+          .from('designs')
+          .delete()
+          .eq('id', designId)
+          .eq('user_id', user.id)
 
-      if (error) {
-        console.error('Error deleting design:', error)
-        toast({
-          title: "Error",
-          description: "Failed to delete design",
-          variant: "destructive"
-        })
+        if (error) {
+          console.error('Error deleting design:', error)
+          toast({
+            title: "Error",
+            description: "Failed to delete design",
+            variant: "destructive"
+          })
+        } else {
+          setDesigns(designs.filter(d => d.id !== designId))
+          toast({
+            title: "Success",
+            description: "Design deleted successfully"
+          })
+        }
       } else {
+        // Delete from local storage for guest users
+        deleteGuestDesign(designId)
         setDesigns(designs.filter(d => d.id !== designId))
         toast({
           title: "Success",
@@ -89,25 +131,41 @@ const MyDesigns = () => {
   }
 
   const addToCart = async (designId: string) => {
-    if (!user) return
+    const design = designs.find(d => d.id === designId)
+    if (!design) return
 
     try {
-      const { error } = await supabase
-        .from('cart_items')
-        .insert({
-          user_id: user.id,
-          design_id: designId,
-          quantity: 1
-        })
+      if (user) {
+        // Add to database for authenticated users
+        const { error } = await supabase
+          .from('cart_items')
+          .insert({
+            user_id: user.id,
+            design_id: designId,
+            quantity: 1
+          })
 
-      if (error) {
-        console.error('Error adding to cart:', error)
-        toast({
-          title: "Error",
-          description: "Failed to add to cart",
-          variant: "destructive"
-        })
+        if (error) {
+          console.error('Error adding to cart:', error)
+          toast({
+            title: "Error",
+            description: "Failed to add to cart",
+            variant: "destructive"
+          })
+        } else {
+          toast({
+            title: "Success",
+            description: "Design added to cart!"
+          })
+        }
       } else {
+        // Add to local storage for guest users
+        addToGuestCart({
+          designId: design.id,
+          quantity: 1,
+          designName: design.name,
+          previewUrl: design.preview_url || undefined
+        })
         toast({
           title: "Success",
           description: "Design added to cart!"
@@ -145,7 +203,9 @@ const MyDesigns = () => {
         {designs.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <p className="text-muted-foreground mb-4">No designs found</p>
+              <p className="text-muted-foreground mb-4">
+                {user ? 'No designs found' : 'No designs saved'}
+              </p>
               <Button onClick={() => window.location.href = '/'}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Your First Design

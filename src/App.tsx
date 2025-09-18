@@ -65,16 +65,8 @@ const AppRoutes = () => (
           <Profile />
         </ProtectedRoute>
       } />
-      <Route path="/my-designs" element={
-        <ProtectedRoute>
-          <MyDesigns />
-        </ProtectedRoute>
-      } />
-      <Route path="/cart" element={
-        <ProtectedRoute>
-          <Cart />
-        </ProtectedRoute>
-      } />
+      <Route path="/my-designs" element={<MyDesigns />} />
+      <Route path="/cart" element={<Cart />} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -7,6 +7,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Minus, Plus, ShoppingCart, Trash2, ArrowLeft } from 'lucide-react'
+import { 
+  getGuestCart, 
+  updateGuestCartQuantity, 
+  removeFromGuestCart, 
+  type GuestCartItem 
+} from '@/lib/guestStorage'
+import { useGuestMigration } from '@/hooks/useGuestMigration'
 
 interface CartItem {
   id: string
@@ -19,19 +26,28 @@ interface CartItem {
   }
 }
 
+type CombinedCartItem = CartItem | (GuestCartItem & { 
+  designs: { id: string; name: string; preview_url: string | null } 
+})
+
 const PRICE_PER_KEYCHAIN = 25.00
 
 const Cart = () => {
   const { user } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
-  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [cartItems, setCartItems] = useState<CombinedCartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
+  
+  // Handle guest data migration when user logs in
+  useGuestMigration()
 
   useEffect(() => {
     if (user) {
       fetchCartItems()
+    } else {
+      fetchGuestCartItems()
     }
   }, [user])
 
@@ -70,6 +86,27 @@ const Cart = () => {
     }
   }
 
+  const fetchGuestCartItems = () => {
+    try {
+      const guestCart = getGuestCart()
+      const formattedItems: CombinedCartItem[] = guestCart.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        design_id: item.designId,
+        designs: {
+          id: item.designId,
+          name: item.designName,
+          preview_url: item.previewUrl || null
+        }
+      }))
+      setCartItems(formattedItems)
+    } catch (error) {
+      console.error('Error fetching guest cart:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const updateQuantity = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) {
       await removeItem(itemId)
@@ -79,20 +116,29 @@ const Cart = () => {
     setUpdating(itemId)
 
     try {
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity: newQuantity })
-        .eq('id', itemId)
-        .eq('user_id', user?.id)
+      if (user) {
+        // Update in database for authenticated users
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity: newQuantity })
+          .eq('id', itemId)
+          .eq('user_id', user.id)
 
-      if (error) {
-        console.error('Error updating quantity:', error)
-        toast({
-          title: "Error",
-          description: "Failed to update quantity",
-          variant: "destructive"
-        })
+        if (error) {
+          console.error('Error updating quantity:', error)
+          toast({
+            title: "Error",
+            description: "Failed to update quantity",
+            variant: "destructive"
+          })
+        } else {
+          setCartItems(cartItems.map(item => 
+            item.id === itemId ? { ...item, quantity: newQuantity } : item
+          ))
+        }
       } else {
+        // Update in local storage for guest users
+        updateGuestCartQuantity(itemId, newQuantity)
         setCartItems(cartItems.map(item => 
           item.id === itemId ? { ...item, quantity: newQuantity } : item
         ))
@@ -108,23 +154,34 @@ const Cart = () => {
     setUpdating(itemId)
 
     try {
-      const { error } = await supabase
-        .from('cart_items')
-        .delete()
-        .eq('id', itemId)
-        .eq('user_id', user?.id)
+      if (user) {
+        // Remove from database for authenticated users
+        const { error } = await supabase
+          .from('cart_items')
+          .delete()
+          .eq('id', itemId)
+          .eq('user_id', user.id)
 
-      if (error) {
-        console.error('Error removing item:', error)
-        toast({
-          title: "Error",
-          description: "Failed to remove item",
-          variant: "destructive"
-        })
+        if (error) {
+          console.error('Error removing item:', error)
+          toast({
+            title: "Error",
+            description: "Failed to remove item",
+            variant: "destructive"
+          })
+        } else {
+          setCartItems(cartItems.filter(item => item.id !== itemId))
+          toast({
+            title: "Success",
+            description: "Item removed from cart"
+          })
+        }
       } else {
+        // Remove from local storage for guest users
+        removeFromGuestCart(itemId)
         setCartItems(cartItems.filter(item => item.id !== itemId))
         toast({
-          title: "Success",
+          title: "Success", 
           description: "Item removed from cart"
         })
       }
