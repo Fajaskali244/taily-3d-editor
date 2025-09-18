@@ -145,6 +145,98 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variants: {
+        Row: {
+          base_price: number
+          color: string | null
+          created_at: string | null
+          id: string
+          material: string | null
+          name: string
+          product_id: string | null
+          ready_to_ship: boolean | null
+          sku: string
+          weight_grams: number | null
+        }
+        Insert: {
+          base_price: number
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          material?: string | null
+          name: string
+          product_id?: string | null
+          ready_to_ship?: boolean | null
+          sku: string
+          weight_grams?: number | null
+        }
+        Update: {
+          base_price?: number
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          material?: string | null
+          name?: string
+          product_id?: string | null
+          ready_to_ship?: boolean | null
+          sku?: string
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          created_at: string | null
+          default_price: number
+          description: string | null
+          id: string
+          max_chars: number | null
+          min_thickness_mm: number | null
+          name: string
+          slug: string
+          status: string | null
+          template_3d_url: string | null
+          thumbnail_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_price: number
+          description?: string | null
+          id?: string
+          max_chars?: number | null
+          min_thickness_mm?: number | null
+          name: string
+          slug: string
+          status?: string | null
+          template_3d_url?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_price?: number
+          description?: string | null
+          id?: string
+          max_chars?: number | null
+          min_thickness_mm?: number | null
+          name?: string
+          slug?: string
+          status?: string | null
+          template_3d_url?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
