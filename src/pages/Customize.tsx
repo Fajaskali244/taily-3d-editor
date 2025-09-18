@@ -1,4 +1,3 @@
-/* eslint no-undef: "error" */
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Canvas } from '@react-three/fiber'
@@ -15,8 +14,7 @@ import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
-import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { ArrowLeft, Save, ShoppingCart, RotateCcw, Palette, Type, Gem, Layers } from 'lucide-react'
+import { ArrowLeft, Save, ShoppingCart, RotateCcw, Palette, Type, Gem, Package } from 'lucide-react'
 import * as THREE from 'three'
 
 // Color swatches
@@ -345,7 +343,7 @@ const Customize = () => {
                 onClick={() => navigate('/customize/classic')}
                 className="flex items-center"
               >
-                <Layers className="h-4 w-4 mr-2" />
+                <Package className="h-4 w-4 mr-2" />
                 Use Classic Designer
               </Button>
               <div>
@@ -583,10 +581,4 @@ const Customize = () => {
   )
 }
 
-const CustomizePageWithErrorBoundary = () => (
-  <ErrorBoundary>
-    <Customize />
-  </ErrorBoundary>
-)
-
-export default CustomizePageWithErrorBoundary
+export default Customize
