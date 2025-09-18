@@ -69,7 +69,7 @@ interface Product {
   max_chars: number
 }
 
-// 3D Model Component
+// 3D Model Component - Using simple geometry instead of Text3D to avoid font loading issues
 const KeychainModel = ({ state }: { state: CustomizerState }) => {
   const meshRef = useRef<THREE.Mesh>(null)
   const sizeOption = SIZE_OPTIONS.find(s => s.value === state.size) || SIZE_OPTIONS[1]
@@ -79,21 +79,31 @@ const KeychainModel = ({ state }: { state: CustomizerState }) => {
       <ambientLight intensity={0.4} />
       <directionalLight position={[10, 10, 5]} intensity={1} />
       <Center>
-        <Text3D
-          ref={meshRef}
-          font="/fonts/helvetiker_regular.typeface.json"
-          size={1}
-          height={0.2}
-          curveSegments={12}
-          bevelEnabled={true}
-          bevelThickness={0.02}
-          bevelSize={0.02}
-          bevelOffset={0}
-          bevelSegments={5}
-        >
-          {state.text || 'Sample Text'}
-          <meshStandardMaterial color={state.color} />
-        </Text3D>
+        {/* Base keychain shape */}
+        <group>
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[3, 1, 0.2]} />
+            <meshStandardMaterial color={state.color} metalness={0.1} roughness={0.6} />
+          </mesh>
+          
+          {/* Keyring hole */}
+          <mesh position={[1.2, 0, 0]} rotation={[Math.PI/2, 0, 0]}>
+            <torusGeometry args={[0.15, 0.05, 8, 16]} />
+            <meshStandardMaterial color="#C0C0C0" metalness={0.8} roughness={0.2} />
+          </mesh>
+          
+          {/* Text placeholder - using extruded geometry */}
+          <mesh position={[-0.5, 0, 0.15]}>
+            <boxGeometry args={[2, 0.4, 0.1]} />
+            <meshStandardMaterial color="#ffffff" opacity={0.9} transparent />
+          </mesh>
+          
+          {/* Text representation */}
+          <mesh position={[-0.5, 0, 0.2]}>
+            <planeGeometry args={[1.8, 0.3]} />
+            <meshBasicMaterial color="#333333" opacity={0.8} transparent />
+          </mesh>
+        </group>
       </Center>
     </group>
   )
