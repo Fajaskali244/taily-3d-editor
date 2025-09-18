@@ -14,7 +14,7 @@ import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Save, ShoppingCart, RotateCcw, Palette, Type, Gem } from 'lucide-react'
+import { ArrowLeft, Save, ShoppingCart, RotateCcw, Palette, Type, Gem, Package } from 'lucide-react'
 import * as THREE from 'three'
 
 // Color swatches
@@ -337,6 +337,14 @@ const Customize = () => {
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/customize/classic')}
+                className="flex items-center"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Use Classic Designer
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">{product?.name}</h1>

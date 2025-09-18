@@ -13,6 +13,7 @@ import Cart from "./pages/Cart";
 import Catalog from "./pages/Catalog";
 import Editor from "./pages/Editor";
 import Customize from "./pages/Customize";
+import CustomizeClassic from "./pages/CustomizeClassic";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const AppRoutes = () => (
       <Route path="/editor" element={<Editor />} />
       <Route path="/customize" element={<Customize />} />
       <Route path="/customize/:slug" element={<Customize />} />
+      <Route path="/customize/classic" element={<CustomizeClassic />} />
       <Route path="/auth" element={
         <PublicRoute>
           <Auth />
