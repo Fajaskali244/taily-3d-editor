@@ -49,29 +49,59 @@ export type Database = {
       designs: {
         Row: {
           created_at: string
-          design_data_url: string
           id: string
+          is_published: boolean | null
           name: string
+          params: Json
+          preview_url: string | null
+          product_id: string | null
+          published_at: string | null
           updated_at: string
           user_id: string
+          variant_id: string | null
         }
         Insert: {
           created_at?: string
-          design_data_url: string
           id?: string
+          is_published?: boolean | null
           name: string
+          params?: Json
+          preview_url?: string | null
+          product_id?: string | null
+          published_at?: string | null
           updated_at?: string
           user_id: string
+          variant_id?: string | null
         }
         Update: {
           created_at?: string
-          design_data_url?: string
           id?: string
+          is_published?: boolean | null
           name?: string
+          params?: Json
+          preview_url?: string | null
+          product_id?: string | null
+          published_at?: string | null
           updated_at?: string
           user_id?: string
+          variant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "designs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "designs_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_items: {
         Row: {

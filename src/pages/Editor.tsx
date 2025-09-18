@@ -200,10 +200,7 @@ const Editor = () => {
         .from('designs')
         .insert({
           user_id: user.id,
-          product_id: product.id,
-          variant_id: designParams.variantId,
-          name: `${product.name} - ${designParams.text}`,
-          params: designParams
+          name: `${product.name} - ${designParams.text}`
         })
 
       if (error) {
@@ -251,10 +248,7 @@ const Editor = () => {
         .from('designs')
         .insert({
           user_id: user.id,
-          product_id: product.id,
-          variant_id: designParams.variantId,
-          name: `${product.name} - ${designParams.text}`,
-          params: designParams
+          name: `${product.name} - ${designParams.text}`
         })
         .select()
         .single()
@@ -266,7 +260,6 @@ const Editor = () => {
         .from('cart_items')
         .insert({
           user_id: user.id,
-          design_id: designData.id,
           quantity: 1
         })
 
