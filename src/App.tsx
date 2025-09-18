@@ -10,6 +10,9 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import MyDesigns from "./pages/MyDesigns";
 import Cart from "./pages/Cart";
+import Catalog from "./pages/Catalog";
+import Editor from "./pages/Editor";
+import Customize from "./pages/Customize";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +51,10 @@ const AppRoutes = () => (
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/catalog" element={<Catalog />} />
+      <Route path="/editor" element={<Editor />} />
+      <Route path="/customize" element={<Customize />} />
+      <Route path="/customize/:slug" element={<Customize />} />
       <Route path="/auth" element={
         <PublicRoute>
           <Auth />

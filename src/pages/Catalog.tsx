@@ -249,7 +249,7 @@ const Catalog = () => {
                     </CardHeader>
                     <CardContent>
                       <Button className="w-full" asChild>
-                        <Link to={`/editor?product=${product.slug}`}>
+                        <Link to={`/customize/${product.slug}`}>
                           Customize Now
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>

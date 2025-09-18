@@ -67,7 +67,7 @@ const Index = () => {
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
               <Button size="lg" className="h-12 px-8" asChild>
-                <Link to="/editor">
+                <Link to="/customize">
                   Start Designing
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -193,7 +193,7 @@ const Index = () => {
                   </CardHeader>
                   <CardContent>
                     <Button className="w-full" asChild>
-                      <Link to={`/editor?product=${product.slug}`}>
+                      <Link to={`/customize/${product.slug}`}>
                         Customize Now
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
@@ -228,7 +228,7 @@ const Index = () => {
             </p>
             <div className="mt-10">
               <Button size="lg" variant="secondary" className="h-12 px-8" asChild>
-                <Link to="/editor">
+                <Link to="/customize">
                   Start Your Design
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
