@@ -260,6 +260,7 @@ const Editor = () => {
         .from('cart_items')
         .insert({
           user_id: user.id,
+          design_id: designData.id,
           quantity: 1
         })
 

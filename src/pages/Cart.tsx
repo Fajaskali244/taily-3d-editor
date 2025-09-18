@@ -15,7 +15,7 @@ interface CartItem {
   designs: {
     id: string
     name: string
-    design_data_url: string
+    preview_url: string
   }
 }
 
@@ -48,7 +48,7 @@ const Cart = () => {
           designs (
             id,
             name,
-            design_data_url
+            preview_url
           )
         `)
         .eq('user_id', user.id)

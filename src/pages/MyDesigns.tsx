@@ -10,7 +10,7 @@ import { Loader2, Plus, Trash2, ArrowLeft } from 'lucide-react'
 interface Design {
   id: string
   name: string
-  design_data_url: string
+  preview_url: string
   created_at: string
 }
 
