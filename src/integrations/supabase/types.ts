@@ -300,9 +300,94 @@ export type Database = {
         }
         Relationships: []
       }
+      reference_designs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_featured: boolean | null
+          params: Json | null
+          preview_url: string
+          product_id: string | null
+          slug: string
+          tags: string[] | null
+          thumb_url: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          params?: Json | null
+          preview_url: string
+          product_id?: string | null
+          slug: string
+          tags?: string[] | null
+          thumb_url?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          params?: Json | null
+          preview_url?: string
+          product_id?: string | null
+          slug?: string
+          tags?: string[] | null
+          thumb_url?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reference_designs_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      v_reference_designs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_featured: boolean | null
+          preview_url: string | null
+          slug: string | null
+          tags: string[] | null
+          thumb_url: string | null
+          title: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_featured?: boolean | null
+          preview_url?: string | null
+          slug?: string | null
+          tags?: string[] | null
+          thumb_url?: string | null
+          title?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_featured?: boolean | null
+          preview_url?: string | null
+          slug?: string | null
+          tags?: string[] | null
+          thumb_url?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
