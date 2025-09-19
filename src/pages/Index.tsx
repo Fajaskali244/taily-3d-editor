@@ -95,10 +95,8 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      {/* Security Monitor */}
-      <div className="container mx-auto px-4 py-4">
-        <SecurityMonitor />
-      </div>
+      {/* Security Monitor - moved outside container to reduce layout shift */}
+      <SecurityMonitor />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10">
@@ -206,7 +204,7 @@ const Index = () => {
           
           {loading ? (
             <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {[...Array(8)].map((_, i) => (
+              {[...Array(4)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
                   <div className="aspect-[4/3] bg-muted rounded-t-lg" />
                   <CardHeader>
