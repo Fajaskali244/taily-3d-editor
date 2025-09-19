@@ -4,17 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <!-- Preconnect to external domains for faster resource loading -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <!-- Critical resource hints for fastest FCP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://lovable.dev" crossorigin>
+    <link rel="dns-prefetch" href="https://lovable.dev">
     
-    <!-- Preload critical fonts -->
+    <!-- Non-blocking font loading for better FCP -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"></noscript>
     
-    <!-- DNS prefetch for likely destinations -->
-    <link rel="dns-prefetch" href="https://lovable.dev">
+    <!-- Inline critical CSS for system fonts as fallback -->
+    <style>
+      body { font-family: system-ui, -apple-system, sans-serif; }
+      #root { min-height: 100vh; }
+    </style>
     
     <title>Taily - Create Your Perfect Keychain with AI</title>
     <meta name="description" content="Design your custom keychains with our interactive 3D platform. AI-powered recommendations and real-time visualization.">
@@ -32,6 +35,7 @@
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
+    <!-- Defer non-critical script loading -->
+    <script type="module" src="/src/main.tsx" async></script>
   </body>
 </html>

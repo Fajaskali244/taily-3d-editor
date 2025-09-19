@@ -36,8 +36,13 @@ const Index = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchProducts()
-    fetchReferenceDesigns()
+    // Defer non-critical data fetching to improve FCP
+    const timer = setTimeout(() => {
+      fetchProducts()
+      fetchReferenceDesigns()
+    }, 100)
+    
+    return () => clearTimeout(timer)
   }, [])
 
   const fetchProducts = async () => {
@@ -93,10 +98,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Critical above-the-fold content first */}
       <Navigation />
       
-      {/* Security Monitor - moved outside container to reduce layout shift */}
-      <SecurityMonitor />
+      {/* Defer SecurityMonitor to improve FCP */}
+      {typeof window !== 'undefined' && <SecurityMonitor />}
       
       {/* Hero Section - Optimized for LCP */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10">
