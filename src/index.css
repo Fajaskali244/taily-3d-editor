@@ -28,14 +28,14 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 322 100% 65%; /* Pink theme */
+    --primary: 322 100% 45%; /* Darker pink for better contrast */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 204 100% 65%; /* Blue theme */
+    --secondary: 204 100% 45%; /* Darker blue for better contrast */
     --secondary-foreground: 0 0% 100%;
     
     /* Masculine primary colors */
-    --masculine-primary: 200 100% 65%; /* Electric blue */
+    --masculine-primary: 200 100% 45%; /* Darker electric blue for better contrast */
     --masculine-primary-foreground: 0 0% 100%;
     --masculine-secondary: 220 20% 25%; /* Dark charcoal */
     --masculine-secondary-foreground: 0 0% 100%;
