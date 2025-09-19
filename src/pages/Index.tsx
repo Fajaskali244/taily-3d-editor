@@ -98,7 +98,7 @@ const Index = () => {
       {/* Security Monitor - moved outside container to reduce layout shift */}
       <SecurityMonitor />
       
-      {/* Hero Section */}
+      {/* Hero Section - Optimized for LCP */}
       <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10">
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" />
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
@@ -109,7 +109,7 @@ const Index = () => {
                 Custom Keychain
               </span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl" style={{ contentVisibility: 'auto' }}>
               Create personalized keychains and accessories in minutes. From nameplates to zodiac charms, 
               bring your unique style to life with our 3D design tools.
             </p>
@@ -130,8 +130,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 bg-muted/50">
+      {/* Features Section - Deferred for better LCP */}
+      <section className="py-24 bg-muted/50" style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
