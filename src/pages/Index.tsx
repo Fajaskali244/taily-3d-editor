@@ -36,25 +36,13 @@ const Index = () => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Start data fetching immediately without delay to reduce request chain
-    fetchProducts()
-    fetchReferenceDesigns()
-  }, [])
-
-  // Prefetch critical data as early as possible
-  useEffect(() => {
-    // Prefetch reference designs in the background
-    const prefetchCriticalData = async () => {
-      try {
-        // This runs in parallel with component mounting to reduce dependency chain
-        supabase.from('reference_designs').select('id').limit(1).then(() => {
-          // Connection is warmed up for the main query
-        })
-      } catch (error) {
-        // Silent prefetch, don't affect UX
-      }
-    }
-    prefetchCriticalData()
+    // Defer non-critical data fetching to improve FCP
+    const timer = setTimeout(() => {
+      fetchProducts()
+      fetchReferenceDesigns()
+    }, 100)
+    
+    return () => clearTimeout(timer)
   }, [])
 
   const fetchProducts = async () => {
