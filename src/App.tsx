@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,16 +6,18 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import MyDesigns from "./pages/MyDesigns";
-import Cart from "./pages/Cart";
-import Catalog from "./pages/Catalog";
-import Designs from "./pages/Designs";
-import Editor from "./pages/Editor";
-import Customize from "./pages/Customize";
-import CustomizeClassic from "./pages/CustomizeClassic";
-import NotFound from "./pages/NotFound";
+
+// Lazy load non-critical pages to reduce initial bundle size
+const Auth = lazy(() => import("./pages/Auth"));
+const Profile = lazy(() => import("./pages/Profile"));
+const MyDesigns = lazy(() => import("./pages/MyDesigns"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Catalog = lazy(() => import("./pages/Catalog"));
+const Designs = lazy(() => import("./pages/Designs"));
+const Editor = lazy(() => import("./pages/Editor"));
+const Customize = lazy(() => import("./pages/Customize"));
+const CustomizeClassic = lazy(() => import("./pages/CustomizeClassic"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -51,29 +53,31 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => (
   <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/catalog" element={<Catalog />} />
-      <Route path="/designs" element={<Designs />} />
-      <Route path="/editor" element={<Editor />} />
-      <Route path="/customize" element={<Customize />} />
-      <Route path="/customize/:slug" element={<Customize />} />
-      <Route path="/customize/classic" element={<CustomizeClassic />} />
-      <Route path="/auth" element={
-        <PublicRoute>
-          <Auth />
-        </PublicRoute>
-      } />
-      <Route path="/profile" element={
-        <ProtectedRoute>
-          <Profile />
-        </ProtectedRoute>
-      } />
-      <Route path="/my-designs" element={<MyDesigns />} />
-      <Route path="/cart" element={<Cart />} />
-      {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/catalog" element={<Catalog />} />
+        <Route path="/designs" element={<Designs />} />
+        <Route path="/editor" element={<Editor />} />
+        <Route path="/customize" element={<Customize />} />
+        <Route path="/customize/:slug" element={<Customize />} />
+        <Route path="/customize/classic" element={<CustomizeClassic />} />
+        <Route path="/auth" element={
+          <PublicRoute>
+            <Auth />
+          </PublicRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } />
+        <Route path="/my-designs" element={<MyDesigns />} />
+        <Route path="/cart" element={<Cart />} />
+        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   </BrowserRouter>
 );
 
