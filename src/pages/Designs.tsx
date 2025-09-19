@@ -211,7 +211,7 @@ const Designs = () => {
                     </CardHeader>
                     <CardContent>
                       <Button className="w-full" asChild>
-                        <Link to={`/customize?design=${design.slug}`}>
+                        <Link to={`/customize/classic?ref=${design.slug}`}>
                           Use This Design
                           <ArrowRight className="ml-2 h-4 w-4" />
                         </Link>

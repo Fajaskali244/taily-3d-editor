@@ -193,11 +193,11 @@ const CustomizeClassic = () => {
             <div className="flex items-center space-x-4">
               <Button 
                 variant="ghost" 
-                onClick={() => navigate('/customize')}
+                onClick={() => navigate('/')}
                 className="flex items-center"
               >
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Editor
+                Back to Home
               </Button>
               <div>
                 <h1 className="text-2xl font-bold">Classic Charm Designer</h1>

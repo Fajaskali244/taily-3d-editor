@@ -15,7 +15,7 @@ const Cart = lazy(() => import("./pages/Cart"));
 const Catalog = lazy(() => import("./pages/Catalog"));
 const Designs = lazy(() => import("./pages/Designs"));
 const Editor = lazy(() => import("./pages/Editor"));
-const Customize = lazy(() => import("./pages/Customize"));
+const RedirectToClassic = lazy(() => import("./components/RedirectToClassic"));
 const CustomizeClassic = lazy(() => import("./pages/CustomizeClassic"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -59,8 +59,8 @@ const AppRoutes = () => (
         <Route path="/catalog" element={<Catalog />} />
         <Route path="/designs" element={<Designs />} />
         <Route path="/editor" element={<Editor />} />
-        <Route path="/customize" element={<Customize />} />
-        <Route path="/customize/:slug" element={<Customize />} />
+        <Route path="/customize" element={<RedirectToClassic />} />
+        <Route path="/customize/:slug" element={<RedirectToClassic />} />
         <Route path="/customize/classic" element={<CustomizeClassic />} />
         <Route path="/auth" element={
           <PublicRoute>
