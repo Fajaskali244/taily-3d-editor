@@ -1,9 +1,19 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Rate limiting
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_REQUESTS = 5; // Lower limit for payment requests
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
 
 interface PaymentRequest {
   amount: number;
@@ -27,7 +37,87 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    // Authentication required for payment processing
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const jwt = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
+    if (authError || !user) {
+      console.error('Payment authentication failed:', authError);
+      return new Response(JSON.stringify({ error: 'Invalid authentication' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Rate limiting by user ID
+    const userId = user.id;
+    const now = Date.now();
+    const userRateLimit = rateLimitMap.get(userId);
+
+    if (userRateLimit) {
+      if (now < userRateLimit.resetTime) {
+        if (userRateLimit.count >= RATE_LIMIT_REQUESTS) {
+          return new Response(JSON.stringify({ 
+            error: 'Too many payment requests. Please try again later.' 
+          }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        userRateLimit.count++;
+      } else {
+        rateLimitMap.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+      }
+    } else {
+      rateLimitMap.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    }
+
     const { amount, currency = 'USD', description = 'Taily Keychain Order', order_id, customer_email }: PaymentRequest = await req.json();
+
+    // Validate payment request
+    if (!amount || amount <= 0) {
+      return new Response(JSON.stringify({ error: 'Invalid payment amount' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!order_id) {
+      return new Response(JSON.stringify({ error: 'Order ID is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Verify user owns the order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select('id, user_id')
+      .eq('id', order_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (orderError || !order) {
+      console.error('Order verification failed:', orderError);
+      return new Response(JSON.stringify({ error: 'Order not found or access denied' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('Secure payment request:', { 
+      userId: user.id, 
+      orderId: order_id, 
+      amount, 
+      timestamp: new Date().toISOString() 
+    });
 
     console.log('Payment request received:', { amount, currency, description, order_id, customer_email });
 

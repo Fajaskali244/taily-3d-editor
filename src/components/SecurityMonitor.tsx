@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Shield, AlertTriangle } from 'lucide-react';
+import { SecurityLogger } from './SecurityLogger';
 
 interface SecurityEvent {
   timestamp: string;
@@ -112,11 +113,15 @@ export const SecurityMonitor: React.FC = () => {
   }
 
   return (
-    <Alert className="border-green-500 bg-green-50">
-      <Shield className="h-4 w-4 text-green-600" />
-      <AlertDescription className="text-green-700">
-        Security status: RLS policies are functioning correctly.
-      </AlertDescription>
-    </Alert>
+    <div className="space-y-4">
+      <Alert className="border-green-500 bg-green-50">
+        <Shield className="h-4 w-4 text-green-600" />
+        <AlertDescription className="text-green-700">
+          Security status: RLS policies are functioning correctly.
+        </AlertDescription>
+      </Alert>
+      
+      <SecurityLogger />
+    </div>
   );
 };
