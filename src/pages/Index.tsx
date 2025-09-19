@@ -18,13 +18,26 @@ interface Product {
   thumbnail_url: string
 }
 
+interface ReferenceDesign {
+  id: string
+  slug: string
+  title: string
+  description: string | null
+  preview_url: string
+  thumb_url: string | null
+  tags: string[] | null
+  is_featured: boolean | null
+}
+
 const Index = () => {
   const { user } = useAuth()
   const [products, setProducts] = useState<Product[]>([])
+  const [referenceDesigns, setReferenceDesigns] = useState<ReferenceDesign[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchProducts()
+    fetchReferenceDesigns()
   }, [])
 
   const fetchProducts = async () => {
@@ -42,6 +55,37 @@ const Index = () => {
       }
     } catch (error) {
       console.error('Error:', error)
+    }
+  }
+
+  const fetchReferenceDesigns = async () => {
+    try {
+      // First try to get featured designs
+      let { data, error } = await supabase
+        .from('reference_designs')
+        .select('id, slug, title, description, preview_url, thumb_url, tags, is_featured')
+        .eq('is_featured', true)
+        .limit(12)
+
+      // If no featured designs found, fall back to recent ones
+      if (!data?.length) {
+        const response = await supabase
+          .from('reference_designs')
+          .select('id, slug, title, description, preview_url, thumb_url, tags, is_featured')
+          .order('created_at', { ascending: false })
+          .limit(12)
+        
+        data = response.data
+        error = response.error
+      }
+
+      if (error) {
+        console.error('Error fetching reference designs:', error)
+      } else {
+        setReferenceDesigns(data || [])
+      }
+    } catch (error) {
+      console.error('Error fetching reference designs:', error)
     } finally {
       setLoading(false)
     }
@@ -161,10 +205,10 @@ const Index = () => {
           </div>
           
           {loading ? (
-            <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
+            <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(8)].map((_, i) => (
                 <Card key={i} className="animate-pulse">
-                  <div className="aspect-square bg-muted rounded-t-lg" />
+                  <div className="aspect-[4/3] bg-muted rounded-t-lg" />
                   <CardHeader>
                     <div className="h-4 bg-muted rounded w-3/4" />
                     <div className="h-3 bg-muted rounded w-1/2" />
@@ -173,40 +217,59 @@ const Index = () => {
               ))}
             </div>
           ) : (
-            <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {products.map((product) => (
-                <Card key={product.id} className="group cursor-pointer hover:shadow-lg transition-shadow">
-                  <div className="aspect-square overflow-hidden rounded-t-lg bg-muted">
-                    <img 
-                      src={product.thumbnail_url} 
-                      alt={product.name}
-                      className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        e.currentTarget.src = '/placeholder.svg'
-                      }}
-                    />
-                  </div>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{product.name}</CardTitle>
-                      <Badge variant="secondary">
-                        ${product.default_price}
-                      </Badge>
+            <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {referenceDesigns.map((design) => {
+                const imageUrl = design.thumb_url || design.preview_url
+                
+                return (
+                  <Card key={design.id} className="group cursor-pointer hover:shadow-lg transition-shadow">
+                    <div className="aspect-[4/3] overflow-hidden rounded-t-lg bg-muted">
+                      <img 
+                        src={imageUrl}
+                        alt={design.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          console.error('Failed to load image for design:', design.slug, 'URL:', imageUrl)
+                          e.currentTarget.src = '/placeholder.svg'
+                        }}
+                      />
                     </div>
-                    <CardDescription className="line-clamp-2">
-                      {product.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button className="w-full" asChild>
-                      <Link to={`/customize/${product.slug}`}>
-                        Customize Now
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg line-clamp-1">{design.title}</CardTitle>
+                        {design.is_featured && (
+                          <Badge variant="secondary">
+                            Featured
+                          </Badge>
+                        )}
+                      </div>
+                      {design.description && (
+                        <CardDescription className="line-clamp-2">
+                          {design.description}
+                        </CardDescription>
+                      )}
+                      {design.tags && design.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {design.tags.slice(0, 3).map((tag, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </CardHeader>
+                    <CardContent>
+                      <Button className="w-full" asChild>
+                        <Link to={`/customize?design=${design.slug}`}>
+                          Use This Design
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
           

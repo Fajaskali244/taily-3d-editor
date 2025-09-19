@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import MyDesigns from "./pages/MyDesigns";
 import Cart from "./pages/Cart";
 import Catalog from "./pages/Catalog";
+import Designs from "./pages/Designs";
 import Editor from "./pages/Editor";
 import Customize from "./pages/Customize";
 import CustomizeClassic from "./pages/CustomizeClassic";
@@ -53,6 +54,7 @@ const AppRoutes = () => (
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/catalog" element={<Catalog />} />
+      <Route path="/designs" element={<Designs />} />
       <Route path="/editor" element={<Editor />} />
       <Route path="/customize" element={<Customize />} />
       <Route path="/customize/:slug" element={<Customize />} />
