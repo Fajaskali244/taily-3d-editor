@@ -81,7 +81,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
     name: 'Sports Bead',
     price: 9000,
     glbPath: '/models/beads/sports.glb',
-    thumbnail: '/lovable-uploads/sports-beads.jpg',
+    thumbnail: '/src/assets/sports-beads-new.png',
     height: 12,
     tags: ['sports', 'ball', 'activity']
   },
