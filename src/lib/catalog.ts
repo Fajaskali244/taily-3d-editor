@@ -51,7 +51,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
     name: 'Pink Cat Eye Bead',
     price: 8000,
     glbPath: '/models/beads/black-pattern.glb',
-    thumbnail: '/lovable-uploads/black-pattern-beads.jpg',
+    thumbnail: '/src/assets/pink-cat-eye-bead-new.png',
     height: 12,
     tags: ['cat eye', 'pink', 'stone']
   },
