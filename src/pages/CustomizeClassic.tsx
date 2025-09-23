@@ -12,6 +12,7 @@ import type { PlacedItem, CatalogItem } from '@/lib/catalog'
 import { CATALOG_ITEMS } from '@/lib/catalog'
 import { supabase } from '@/integrations/supabase/client'
 import { captureCanvasScreenshot, uploadPreview } from '@/lib/storage'
+import { formatMoney } from '@/lib/currency'
 
 export type ItemKind = 'keyring' | 'bead' | 'charm'
 
@@ -81,16 +82,19 @@ const CustomizeClassic = () => {
   }, [state.placed, state.keyringId])
 
   const calculatePricing = (placed: PlacedItem[], keyringId: string) => {
-    const keyringPrice = CATALOG_ITEMS.find(item => item.id === keyringId)?.price || 25
+    // Use IDR pricing consistent with server
+    const basePrice = 25000 // IDR
     const itemsPrice = placed.reduce((sum, item) => {
       const catalogItem = CATALOG_ITEMS.find(c => c.id === item.catalogId)
-      return sum + (catalogItem?.price || 0)
+      if (catalogItem?.kind === 'bead') return sum + 10000
+      if (catalogItem?.kind === 'charm') return sum + 15000
+      return sum
     }, 0)
     
     setState(prev => ({
       ...prev,
       pricing: {
-        subtotal: keyringPrice + itemsPrice,
+        subtotal: basePrice + itemsPrice,
         itemCount: placed.length
       }
     }))
@@ -389,7 +393,7 @@ const CustomizeClassic = () => {
               </Button>
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <div className="text-2xl font-bold">IDR {state.pricing.subtotal.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">{formatMoney(state.pricing.subtotal)}</div>
                   <div className="text-sm text-muted-foreground">{state.pricing.itemCount} items</div>
                 </div>
                 <div className="flex space-x-2">

@@ -14,11 +14,13 @@ import {
   type GuestCartItem 
 } from '@/lib/guestStorage'
 import { useGuestMigration } from '@/hooks/useGuestMigration'
+import { formatMoney } from '@/lib/currency'
 
 interface CartItem {
   id: string
   quantity: number
   design_id: string
+  snapshot?: any
   designs: {
     id: string
     name: string
@@ -30,13 +32,21 @@ type CombinedCartItem = CartItem | (GuestCartItem & {
   designs: { id: string; name: string; preview_url: string | null } 
 })
 
-const PRICE_PER_KEYCHAIN = 25.00
+interface PricingTotals {
+  items: Array<{ id: string; qty: number; unit_price: number; line_total: number }>
+  subtotal: number
+  shipping: number
+  tax: number
+  discount_total: number
+  grand_total: number
+}
 
 const Cart = () => {
   const { user } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
   const [cartItems, setCartItems] = useState<CombinedCartItem[]>([])
+  const [totals, setTotals] = useState<PricingTotals | null>(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
   
@@ -61,6 +71,7 @@ const Cart = () => {
           id,
           quantity,
           design_id,
+          snapshot,
           designs (
             id,
             name,
@@ -78,11 +89,28 @@ const Cart = () => {
         })
       } else {
         setCartItems(data || [])
+        // Fetch pricing from server
+        if (data && data.length > 0) {
+          await fetchPricing(data.map(item => item.id))
+        }
       }
     } catch (error) {
       console.error('Error:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchPricing = async (cartItemIds: string[]) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('cart-price', {
+        body: { cartItemIds }
+      })
+      
+      if (error) throw error
+      setTotals(data)
+    } catch (error) {
+      console.error('Error fetching pricing:', error)
     }
   }
 
@@ -132,9 +160,12 @@ const Cart = () => {
             variant: "destructive"
           })
         } else {
-          setCartItems(cartItems.map(item => 
+          const updatedItems = cartItems.map(item => 
             item.id === itemId ? { ...item, quantity: newQuantity } : item
-          ))
+          )
+          setCartItems(updatedItems)
+          // Refresh pricing
+          await fetchPricing(updatedItems.map(item => item.id))
         }
       } else {
         // Update in local storage for guest users
@@ -170,7 +201,14 @@ const Cart = () => {
             variant: "destructive"
           })
         } else {
-          setCartItems(cartItems.filter(item => item.id !== itemId))
+          const updatedItems = cartItems.filter(item => item.id !== itemId)
+          setCartItems(updatedItems)
+          // Refresh pricing
+          if (updatedItems.length > 0) {
+            await fetchPricing(updatedItems.map(item => item.id))
+          } else {
+            setTotals(null)
+          }
           toast({
             title: "Success",
             description: "Item removed from cart"
@@ -179,7 +217,9 @@ const Cart = () => {
       } else {
         // Remove from local storage for guest users
         removeFromGuestCart(itemId)
-        setCartItems(cartItems.filter(item => item.id !== itemId))
+        const updatedItems = cartItems.filter(item => item.id !== itemId)
+        setCartItems(updatedItems)
+        setTotals(null) // Clear totals for guest users
         toast({
           title: "Success", 
           description: "Item removed from cart"
@@ -192,8 +232,9 @@ const Cart = () => {
     }
   }
 
-  const calculateTotal = () => {
-    return cartItems.reduce((total, item) => total + (item.quantity * PRICE_PER_KEYCHAIN), 0)
+  const getItemPrice = (itemId: string) => {
+    const priceLine = totals?.items?.find(line => line.id === itemId)
+    return priceLine?.unit_price || 0
   }
 
   const handleCheckout = () => {
@@ -255,7 +296,7 @@ const Cart = () => {
                         <div>
                           <h3 className="font-semibold">{item.designs.name}</h3>
                           <p className="text-sm text-muted-foreground">
-                            ${PRICE_PER_KEYCHAIN.toFixed(2)} each
+                            {formatMoney(getItemPrice(item.id))} each
                           </p>
                         </div>
                       </div>
@@ -318,11 +359,17 @@ const Cart = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span>Subtotal ({cartItems.reduce((sum, item) => sum + item.quantity, 0)} items)</span>
-                    <span>${calculateTotal().toFixed(2)}</span>
+                    <span>{totals ? formatMoney(totals.subtotal) : formatMoney(0)}</span>
                   </div>
+                  {totals && totals.shipping > 0 && (
+                    <div className="flex justify-between">
+                      <span>Shipping</span>
+                      <span>{formatMoney(totals.shipping)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-semibold text-lg border-t pt-2">
                     <span>Total</span>
-                    <span>${calculateTotal().toFixed(2)}</span>
+                    <span>{totals ? formatMoney(totals.grand_total) : formatMoney(0)}</span>
                   </div>
                 </div>
                 <Button onClick={handleCheckout} className="w-full mt-4">
