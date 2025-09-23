@@ -61,7 +61,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
     name: 'Blue Glitter Bead',
     price: 10000,
     glbPath: '/models/beads/blue-glitter.glb',
-    thumbnail: '/lovable-uploads/blue-glitter-beads.jpg',
+    thumbnail: '/src/assets/blue-glitter-beads-new.png',
     height: 12,
     tags: ['glitter', 'blue', 'sparkle']
   },
