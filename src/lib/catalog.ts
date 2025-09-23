@@ -113,7 +113,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
     name: 'Moon Charm',
     price: 18000,
     glbPath: '/models/charms/moon.glb',
-    thumbnail: '/lovable-uploads/moon-charm.jpg',
+    thumbnail: '/src/assets/moon-charm-new.png',
     height: 10,
     tags: ['moon', 'celestial', 'crescent']
   }
