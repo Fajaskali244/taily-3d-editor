@@ -29,7 +29,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
     name: 'Basic Keyring',
     price: 25000,
     glbPath: '/models/keyring.glb',
-    thumbnail: '/lovable-uploads/classic-keyring.jpg',
+    thumbnail: '/src/assets/basic-keyring-new.png',
     height: 2,
     tags: ['basic', 'metal']
   },
