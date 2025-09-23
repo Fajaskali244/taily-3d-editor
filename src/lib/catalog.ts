@@ -48,12 +48,12 @@ export const CATALOG_ITEMS: CatalogItem[] = [
   {
     id: 'bead-black-pattern',
     kind: 'bead',
-    name: 'Black Pattern Bead',
+    name: 'Pink Cat Eye Bead',
     price: 8000,
     glbPath: '/models/beads/black-pattern.glb',
     thumbnail: '/lovable-uploads/black-pattern-beads.jpg',
     height: 12,
-    tags: ['pattern', 'black', 'geometric']
+    tags: ['cat eye', 'pink', 'stone']
   },
   {
     id: 'bead-blue-glitter',
