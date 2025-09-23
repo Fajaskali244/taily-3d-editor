@@ -103,7 +103,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
     name: 'Star Charm',
     price: 15000,
     glbPath: '/models/charms/star.glb',
-    thumbnail: '/lovable-uploads/star-charm.jpg',
+    thumbnail: '/src/assets/star-charm-new.png',
     height: 8,
     tags: ['star', 'celestial', 'shine']
   },
