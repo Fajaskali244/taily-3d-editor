@@ -71,7 +71,7 @@ export const CATALOG_ITEMS: CatalogItem[] = [
     name: 'Owl Face Bead',
     price: 12000,
     glbPath: '/models/beads/owl.glb',
-    thumbnail: '/lovable-uploads/owl-beads.jpg',
+    thumbnail: '/src/assets/owl-face-bead-new.png',
     height: 15,
     tags: ['owl', 'animal', 'cute']
   },
