@@ -23,37 +23,75 @@ const PRICING = {
   engraving: 10000      // Flat rate for engraving
 }
 
+function isEmpty(v: any): boolean { 
+  return v == null || (typeof v === 'object' && Object.keys(v).length === 0) 
+}
+
 export function calcUnitFromSnapshot(snapshot: any): number {
-  // Snapshot holds the final selection from Designer
-  const params = snapshot || {}
+  if (!snapshot || isEmpty(snapshot)) return PRICING.base
+  
+  // Handle normalized snapshot format from Designer
+  const params = snapshot as any
   const placed = params.placed || []
   
-  // Base keyring pricing
-  const base = PRICING.base
+  // Determine keyring type
+  const keyringId = params.keyringId || 'keyring-basic'
+  const isPremium = keyringId.includes('premium')
+  const base = isPremium ? PRICING.premium : PRICING.base
   
-  // Calculate components
+  // Calculate components from placed items
   const beadCount = placed.filter((item: any) => item.kind === 'bead').length
   const beads = beadCount * PRICING.bead
   
   const charmCount = placed.filter((item: any) => item.kind === 'charm').length  
   const charms = charmCount * PRICING.charm
   
-  // Engraving (if text exists)
-  const engraving = params.engraving?.text ? PRICING.engraving : 0
+  // Engraving (check multiple possible locations)
+  const engraving = (params.engraving?.text) ? PRICING.engraving : 0
   
   return base + beads + charms + engraving
 }
 
 export async function computeTotals(cartItemIds: string[]): Promise<PricingTotals> {
+  // Load cart items with design fallback
   const { data: items, error } = await supabase
     .from('cart_items')
-    .select('id, quantity, snapshot')
+    .select('id, quantity, snapshot, design_id')
     .in('id', cartItemIds)
 
   if (error) throw error
 
+  // For items with empty/missing snapshots, fetch design params as fallback
+  const itemsWithEmptySnapshots = (items ?? []).filter(item => 
+    isEmpty(item.snapshot) || !(item.snapshot as any)?.placed?.length
+  )
+  
+  let designParamsById: Record<string, any> = {}
+  if (itemsWithEmptySnapshots.length > 0) {
+    const designIds = itemsWithEmptySnapshots
+      .map(item => item.design_id)
+      .filter(Boolean)
+    
+    if (designIds.length > 0) {
+      const { data: designs } = await supabase
+        .from('designs')
+        .select('id, params')
+        .in('id', designIds)
+      
+      designParamsById = Object.fromEntries(
+        (designs ?? []).map(d => [d.id, d.params])
+      )
+    }
+  }
+
   const lines = (items ?? []).map((ci) => {
-    const unit = calcUnitFromSnapshot(ci.snapshot)
+    // Use snapshot or fallback to design params
+    let snapshot = ci.snapshot
+    if (isEmpty(snapshot) || !(snapshot as any)?.placed?.length) {
+      snapshot = designParamsById[ci.design_id] || {}
+    }
+    
+    const unit = calcUnitFromSnapshot(snapshot)
     return { 
       id: ci.id, 
       qty: ci.quantity, 

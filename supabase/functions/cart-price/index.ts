@@ -15,23 +15,38 @@ const PRICING = {
   engraving: 10000      // Flat rate for engraving
 }
 
+type Snapshot = {
+  keyringId?: string
+  placed?: Array<{ kind: string; catalogId: string }>
+  params?: { colorTheme?: string }
+  pricing?: { subtotal: number; itemCount: number }
+}
+
+function isEmpty(v: any): boolean { 
+  return v == null || (typeof v === 'object' && Object.keys(v).length === 0) 
+}
+
 function calcUnitFromSnapshot(snapshot: any): number {
-  // Snapshot holds the final selection from Designer
-  const params = snapshot || {}
+  if (!snapshot || isEmpty(snapshot)) return PRICING.base
+  
+  // Handle normalized snapshot format from Designer
+  const params = snapshot as Snapshot
   const placed = params.placed || []
   
-  // Base keyring pricing
-  const base = PRICING.base
+  // Determine keyring type
+  const keyringId = params.keyringId || 'keyring-basic'
+  const isPremium = keyringId.includes('premium')
+  const base = isPremium ? PRICING.premium : PRICING.base
   
-  // Calculate components
+  // Calculate components from placed items
   const beadCount = placed.filter((item: any) => item.kind === 'bead').length
   const beads = beadCount * PRICING.bead
   
   const charmCount = placed.filter((item: any) => item.kind === 'charm').length  
   const charms = charmCount * PRICING.charm
   
-  // Engraving (if text exists)
-  const engraving = params.engraving?.text ? PRICING.engraving : 0
+  // Engraving (check multiple possible locations)
+  const engraving = (snapshot.engraving?.text || params.params?.engraving?.text) ? PRICING.engraving : 0
   
   return base + beads + charms + engraving
 }
@@ -59,16 +74,45 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get cart items with snapshots
+    // Get cart items with design fallback
     const { data: items, error } = await supabaseAdmin
       .from('cart_items')
-      .select('id, quantity, snapshot')
+      .select('id, quantity, snapshot, design_id')
       .in('id', cartItemIds)
 
     if (error) throw error
 
-    const lines = (items ?? []).map((ci) => {
-      const unit = calcUnitFromSnapshot(ci.snapshot)
+    // For items with empty/missing snapshots, fetch design params as fallback
+    const itemsWithEmptySnapshots = (items ?? []).filter((item: any) => 
+      isEmpty(item.snapshot) || !item.snapshot?.placed?.length
+    )
+    
+    let designParamsById: Record<string, any> = {}
+    if (itemsWithEmptySnapshots.length > 0) {
+      const designIds = itemsWithEmptySnapshots
+        .map((item: any) => item.design_id)
+        .filter(Boolean)
+      
+      if (designIds.length > 0) {
+        const { data: designs } = await supabaseAdmin
+          .from('designs')
+          .select('id, params')
+          .in('id', designIds)
+        
+        designParamsById = Object.fromEntries(
+          (designs ?? []).map((d: any) => [d.id, d.params])
+        )
+      }
+    }
+
+    const lines = (items ?? []).map((ci: any) => {
+      // Use snapshot or fallback to design params
+      let snapshot = ci.snapshot
+      if (isEmpty(snapshot) || !snapshot?.placed?.length) {
+        snapshot = designParamsById[ci.design_id] || {}
+      }
+      
+      const unit = calcUnitFromSnapshot(snapshot)
       return { 
         id: ci.id, 
         qty: ci.quantity, 
