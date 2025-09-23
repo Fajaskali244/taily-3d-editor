@@ -2,3 +2,9 @@ project_id = "npvkyiujvxyrrqdyrhas"
 
 [functions.send-order-confirmation]
 verify_jwt = false
+
+[functions.checkout-create]
+verify_jwt = false
+
+[functions.admin-mark-paid]
+verify_jwt = false

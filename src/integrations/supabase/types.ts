@@ -20,6 +20,7 @@ export type Database = {
           design_id: string
           id: string
           quantity: number
+          snapshot: Json | null
           user_id: string
         }
         Insert: {
@@ -27,6 +28,7 @@ export type Database = {
           design_id: string
           id?: string
           quantity?: number
+          snapshot?: Json | null
           user_id: string
         }
         Update: {
@@ -34,6 +36,7 @@ export type Database = {
           design_id?: string
           id?: string
           quantity?: number
+          snapshot?: Json | null
           user_id?: string
         }
         Relationships: [
@@ -103,6 +106,57 @@ export type Database = {
           },
         ]
       }
+      events_analytics: {
+        Row: {
+          design_id: string | null
+          event: string
+          id: number
+          order_id: string | null
+          props: Json | null
+          ts: string | null
+          user_id: string | null
+        }
+        Insert: {
+          design_id?: string | null
+          event: string
+          id?: number
+          order_id?: string | null
+          props?: Json | null
+          ts?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          design_id?: string | null
+          event?: string
+          id?: number
+          order_id?: string | null
+          props?: Json | null
+          ts?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      feature_flags: {
+        Row: {
+          enabled: boolean
+          key: string
+          payload: Json
+          updated_at: string | null
+        }
+        Insert: {
+          enabled?: boolean
+          key: string
+          payload?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          enabled?: boolean
+          key?: string
+          payload?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string
@@ -148,32 +202,126 @@ export type Database = {
       orders: {
         Row: {
           created_at: string
+          discount_total: number | null
+          fulfillment_status: string | null
+          grand_total: number | null
           id: string
+          idempotency_key: string | null
+          payment_method: string | null
           payment_status: string
           shipping_address: string
+          shipping_cost: number | null
+          subtotal: number | null
+          tax_total: number | null
           total_price: number
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          discount_total?: number | null
+          fulfillment_status?: string | null
+          grand_total?: number | null
           id?: string
+          idempotency_key?: string | null
+          payment_method?: string | null
           payment_status?: string
           shipping_address: string
+          shipping_cost?: number | null
+          subtotal?: number | null
+          tax_total?: number | null
           total_price: number
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          discount_total?: number | null
+          fulfillment_status?: string | null
+          grand_total?: number | null
           id?: string
+          idempotency_key?: string | null
+          payment_method?: string | null
           payment_status?: string
           shipping_address?: string
+          shipping_cost?: number | null
+          subtotal?: number | null
+          tax_total?: number | null
           total_price?: number
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      payment_events: {
+        Row: {
+          actor: string
+          event: string
+          id: number
+          order_id: string
+          payload: Json | null
+          ts: string | null
+        }
+        Insert: {
+          actor: string
+          event: string
+          id?: number
+          order_id: string
+          payload?: Json | null
+          ts?: string | null
+        }
+        Update: {
+          actor?: string
+          event?: string
+          id?: number
+          order_id?: string
+          payload?: Json | null
+          ts?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_receipts: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          note: string | null
+          order_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url: string
+          note?: string | null
+          order_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          note?: string | null
+          order_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_receipts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_variants: {
         Row: {
@@ -349,6 +497,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shipping_addresses: {
+        Row: {
+          address1: string
+          address2: string | null
+          city: string
+          country: string
+          created_at: string | null
+          id: string
+          is_default: boolean
+          phone: string
+          postal_code: string
+          province: string
+          recipient: string
+          user_id: string
+        }
+        Insert: {
+          address1: string
+          address2?: string | null
+          city: string
+          country?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          phone: string
+          postal_code: string
+          province: string
+          recipient: string
+          user_id: string
+        }
+        Update: {
+          address1?: string
+          address2?: string | null
+          city?: string
+          country?: string
+          created_at?: string | null
+          id?: string
+          is_default?: boolean
+          phone?: string
+          postal_code?: string
+          province?: string
+          recipient?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {

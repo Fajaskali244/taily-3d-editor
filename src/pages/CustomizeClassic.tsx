@@ -6,10 +6,12 @@ import { SelectionPanel } from '@/components/classic/SelectionPanel'
 import { DesignSummary } from '@/components/classic/DesignSummary'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Undo, Redo } from 'lucide-react'
+import { ArrowLeft, Undo, Redo, ShoppingCart } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { PlacedItem, CatalogItem } from '@/lib/catalog'
 import { CATALOG_ITEMS } from '@/lib/catalog'
+import { supabase } from '@/integrations/supabase/client'
+import { captureCanvasScreenshot, uploadPreview } from '@/lib/storage'
 
 export type ItemKind = 'keyring' | 'bead' | 'charm'
 
@@ -41,6 +43,8 @@ const CustomizeClassic = () => {
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [isDragging, setIsDragging] = useState(false)
   const [draggedItem, setDraggedItem] = useState<CatalogItem | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [addingToCart, setAddingToCart] = useState(false)
 
   // Load guest data from localStorage
   useEffect(() => {
@@ -182,6 +186,168 @@ const CustomizeClassic = () => {
     handleDragEnd()
   }
 
+  const saveDesign = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save your design.",
+        variant: "destructive"
+      })
+      return null
+    }
+
+    setSaving(true)
+    try {
+      // Create design name
+      const designName = `Classic Design ${new Date().toLocaleDateString()}`
+      
+      // Capture canvas screenshot for preview
+      const canvas = document.querySelector('canvas')
+      let previewUrl = null
+      
+      if (canvas) {
+        const blob = await captureCanvasScreenshot(canvas)
+        if (blob) {
+          const filename = `preview-${Date.now()}.png`
+          previewUrl = await uploadPreview(blob, filename)
+        }
+      }
+
+      // Save design to database
+      const { data: design, error } = await supabase
+        .from('designs')
+        .insert({
+          user_id: user.id,
+          name: designName,
+          params: state as any,
+          preview_url: previewUrl,
+          is_published: false
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      toast({
+        title: "Design saved!",
+        description: "Your design has been saved successfully.",
+      })
+
+      return design
+
+    } catch (error: any) {
+      console.error('Save error:', error)
+      toast({
+        title: "Save failed",
+        description: error.message,
+        variant: "destructive"
+      })
+      return null
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const addToCart = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to add items to cart.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setAddingToCart(true)
+    try {
+      // First save the design
+      const design = await saveDesign()
+      if (!design) return
+
+      // Add to cart with design snapshot
+      const { error } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: user.id,
+          design_id: design.id,
+          quantity: 1,
+          snapshot: state as any // Store current design state for pricing
+        })
+
+      if (error) throw error
+
+      toast({
+        title: "Added to cart!",
+        description: "Your design has been added to the cart.",
+      })
+
+    } catch (error: any) {
+      console.error('Add to cart error:', error)
+      toast({
+        title: "Failed to add to cart",
+        description: error.message,
+        variant: "destructive"
+      })
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
+  const checkout = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to checkout.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setAddingToCart(true)
+    try {
+      // First save the design and add to cart
+      const design = await saveDesign()
+      if (!design) return
+
+      const { data: cartItem, error: cartError } = await supabase
+        .from('cart_items')
+        .insert({
+          user_id: user.id,
+          design_id: design.id,
+          quantity: 1,
+          snapshot: state as any
+        })
+        .select()
+        .single()
+
+      if (cartError) throw cartError
+
+      // Create checkout session
+      const { data: checkoutData, error: checkoutError } = await supabase.functions.invoke('checkout-create', {
+        body: {
+          cartItemIds: [cartItem.id],
+          userId: user.id,
+          userEmail: user.email
+        }
+      })
+
+      if (checkoutError) throw checkoutError
+
+      // Redirect to payment page
+      navigate(checkoutData.pay_url)
+
+    } catch (error: any) {
+      console.error('Checkout error:', error)
+      toast({
+        title: "Checkout failed",
+        description: error.message,
+        variant: "destructive"
+      })
+    } finally {
+      setAddingToCart(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -221,9 +387,34 @@ const CustomizeClassic = () => {
               >
                 <Redo className="h-4 w-4" />
               </Button>
-              <div className="text-right">
-                <div className="text-2xl font-bold">IDR {state.pricing.subtotal.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">{state.pricing.itemCount} items</div>
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <div className="text-2xl font-bold">IDR {state.pricing.subtotal.toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground">{state.pricing.itemCount} items</div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={saveDesign}
+                    disabled={saving || !user}
+                  >
+                    {saving ? 'Saving...' : 'Save Design'}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={addToCart}
+                    disabled={addingToCart || !user}
+                  >
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    {addingToCart ? 'Adding...' : 'Add to Cart'}
+                  </Button>
+                  <Button 
+                    onClick={checkout}
+                    disabled={addingToCart || !user}
+                  >
+                    {addingToCart ? 'Processing...' : 'Buy Now'}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

@@ -17,6 +17,8 @@ const Designs = lazy(() => import("./pages/Designs"));
 const Editor = lazy(() => import("./pages/Editor"));
 const RedirectToClassic = lazy(() => import("./components/RedirectToClassic"));
 const CustomizeClassic = lazy(() => import("./pages/CustomizeClassic"));
+const OrderPayment = lazy(() => import("./pages/OrderPayment"));
+const AdminOrders = lazy(() => import("./pages/AdminOrders"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -62,6 +64,8 @@ const AppRoutes = () => (
         <Route path="/customize" element={<RedirectToClassic />} />
         <Route path="/customize/:slug" element={<RedirectToClassic />} />
         <Route path="/customize/classic" element={<CustomizeClassic />} />
+        <Route path="/orders/:id/pay" element={<OrderPayment />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
         <Route path="/auth" element={
           <PublicRoute>
             <Auth />
