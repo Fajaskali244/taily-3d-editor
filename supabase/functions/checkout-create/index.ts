@@ -23,6 +23,23 @@ serve(async (req) => {
       throw new Error('Method not allowed')
     }
 
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Missing authorization header')
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    if (authError || !user) {
+      throw new Error('Unauthorized')
+    }
+
     const { cartItemIds, userId, userEmail }: CheckoutRequest = await req.json()
     
     if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
@@ -31,6 +48,11 @@ serve(async (req) => {
 
     if (!userId) {
       throw new Error('userId required')
+    }
+
+    // Verify userId matches authenticated user
+    if (userId !== user.id) {
+      throw new Error('Unauthorized: Cannot create order for another user')
     }
 
     // Create admin client

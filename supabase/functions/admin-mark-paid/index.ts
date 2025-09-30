@@ -17,6 +17,32 @@ serve(async (req) => {
       throw new Error('Method not allowed')
     }
 
+    // Verify authentication and admin role
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Missing authorization header')
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    if (authError || !user) {
+      throw new Error('Unauthorized')
+    }
+
+    // Check if user is admin
+    const token = authHeader.replace('Bearer ', '')
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    const userRole = payload?.role || ''
+    
+    if (userRole !== 'admin' && userRole !== 'service_role') {
+      throw new Error('Forbidden: Admin access required')
+    }
+
     const { orderId } = await req.json()
     
     if (!orderId) {

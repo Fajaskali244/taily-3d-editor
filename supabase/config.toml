@@ -1,13 +1,13 @@
 project_id = "npvkyiujvxyrrqdyrhas"
 
 [functions.send-order-confirmation]
-verify_jwt = false
+verify_jwt = true
 
 [functions.checkout-create]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-mark-paid]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cart-price]
-verify_jwt = false
+verify_jwt = true

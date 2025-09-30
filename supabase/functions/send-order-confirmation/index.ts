@@ -14,6 +14,32 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Verify service role or webhook signature
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Missing authorization header')
+    }
+
+    // Check if service_role key is being used (for webhooks from Supabase)
+    const token = authHeader.replace('Bearer ', '')
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
+    
+    // Allow service_role key or verify JWT is valid
+    if (token !== serviceRoleKey && token !== anonKey) {
+      // Verify JWT token
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_ANON_KEY')!,
+        { global: { headers: { Authorization: authHeader } } }
+      )
+      
+      const { error: authError } = await supabaseClient.auth.getUser()
+      if (authError) {
+        throw new Error('Unauthorized: Invalid authentication token')
+      }
+    }
+
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     if (!resendApiKey) {
       throw new Error('Resend API key not configured');

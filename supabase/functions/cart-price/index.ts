@@ -62,6 +62,23 @@ serve(async (req) => {
       throw new Error('Method not allowed')
     }
 
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Missing authorization header')
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    if (authError || !user) {
+      throw new Error('Unauthorized')
+    }
+
     const { cartItemIds } = await req.json()
     
     if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
