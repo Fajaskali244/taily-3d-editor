@@ -49,6 +49,48 @@ export type Database = {
           },
         ]
       }
+      catalog_items: {
+        Row: {
+          created_at: string | null
+          glb_path: string
+          height_mm: number | null
+          id: string
+          kind: Database["public"]["Enums"]["catalog_item_kind"]
+          name: string
+          price: number
+          slug: string | null
+          tags: string[] | null
+          thumbnail: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          glb_path: string
+          height_mm?: number | null
+          id?: string
+          kind: Database["public"]["Enums"]["catalog_item_kind"]
+          name: string
+          price: number
+          slug?: string | null
+          tags?: string[] | null
+          thumbnail: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          glb_path?: string
+          height_mm?: number | null
+          id?: string
+          kind?: Database["public"]["Enums"]["catalog_item_kind"]
+          name?: string
+          price?: number
+          slug?: string | null
+          tags?: string[] | null
+          thumbnail?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       designs: {
         Row: {
           created_at: string
@@ -583,10 +625,25 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      get_catalog_items: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          glb_path: string
+          height_mm: number
+          id: string
+          kind: string
+          name: string
+          price: number
+          slug: string
+          tags: string[]
+          thumbnail: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
-      [_ in never]: never
+      catalog_item_kind: "keyring" | "bead" | "charm"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -713,6 +770,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      catalog_item_kind: ["keyring", "bead", "charm"],
+    },
   },
 } as const
