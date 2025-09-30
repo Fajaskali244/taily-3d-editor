@@ -324,8 +324,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Chatbot */}
-      <Chatbot />
+      {/* Chatbot - Defer to improve initial load */}
+      {typeof window !== 'undefined' && <Chatbot />}
     </div>
   )
 }
