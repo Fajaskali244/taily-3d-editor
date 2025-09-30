@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import Navigation from '@/components/Navigation'
 import { SecurityMonitor } from '@/components/SecurityMonitor'
+import { Chatbot } from '@/components/Chatbot'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -322,6 +323,9 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   )
 }
