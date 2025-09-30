@@ -3,7 +3,8 @@ import { Canvas, useFrame } from '@react-three/fiber'
 import { OrbitControls, Environment, ContactShadows, useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { Card, CardContent } from '@/components/ui/card'
-import { getSignedUrl, getItemById } from '@/lib/storage'
+import { getSignedUrl } from '@/lib/storage'
+import { getItemById, fetchCatalogItems } from '@/lib/catalog'
 import type { PlacedItem, CatalogItem } from '@/lib/catalog'
 
 interface ClassicCanvasProps {
@@ -24,7 +25,7 @@ const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?
   
   useEffect(() => {
     const loadModel = async () => {
-      const item = getItemById(keyringId)
+      const item = await getItemById(keyringId)
       if (item) {
         const url = await getSignedUrl(item.glbPath.replace('/models/', ''))
         setModelUrl(url)
@@ -94,12 +95,14 @@ const PlacedItemMesh = ({
   const meshRef = useRef<THREE.Group>(null)
   const [modelUrl, setModelUrl] = useState<string | null>(null)
   const [isHovered, setIsHovered] = useState(false)
+  const [catalogItem, setCatalogItem] = useState<CatalogItem | null>(null)
   
   useEffect(() => {
     const loadModel = async () => {
-      const catalogItem = getItemById(item.catalogId)
-      if (catalogItem) {
-        const url = await getSignedUrl(catalogItem.glbPath.replace('/models/', ''))
+      const itemData = await getItemById(item.catalogId)
+      if (itemData) {
+        setCatalogItem(itemData)
+        const url = await getSignedUrl(itemData.glbPath.replace('/models/', ''))
         setModelUrl(url)
       }
     }
@@ -111,7 +114,6 @@ const PlacedItemMesh = ({
 
   // Fallback geometries
   const getFallbackGeometry = () => {
-    const catalogItem = getItemById(item.catalogId)
     if (!catalogItem) return null
 
     const scale = isHovered ? 1.1 : 1.0
@@ -175,8 +177,9 @@ const Scene = ({ state, onRemoveItem }: {
   // Calculate cumulative heights for stacking
   const getStackHeight = (index: number) => {
     return state.placed.slice(0, index).reduce((height, item) => {
-      const catalogItem = getItemById(item.catalogId)
-      return height + (catalogItem?.height || 12) // Default 12mm height
+      // Use a default height since we can't make async calls here
+      const defaultHeight = 12 // Default 12mm height for beads/charms
+      return height + defaultHeight
     }, 0) / 100 // Convert mm to units
   }
 

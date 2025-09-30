@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Undo, Redo, ShoppingCart } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { PlacedItem, CatalogItem } from '@/lib/catalog'
-import { CATALOG_ITEMS } from '@/lib/catalog'
+import { fetchCatalogItems } from '@/lib/catalog'
 import { supabase } from '@/integrations/supabase/client'
 import { captureCanvasScreenshot, uploadPreview } from '@/lib/storage'
 import { formatMoney } from '@/lib/currency'
@@ -43,6 +43,19 @@ const CustomizeClassic = () => {
   const [history, setHistory] = useState<HistoryState[]>([])
   const [historyIndex, setHistoryIndex] = useState(-1)
   const [isDragging, setIsDragging] = useState(false)
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([])
+
+  useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        const items = await fetchCatalogItems()
+        setCatalogItems(items)
+      } catch (error) {
+        console.error('Failed to load catalog:', error)
+      }
+    }
+    loadCatalog()
+  }, [])
   const [draggedItem, setDraggedItem] = useState<CatalogItem | null>(null)
   const [saving, setSaving] = useState(false)
   const [addingToCart, setAddingToCart] = useState(false)
@@ -85,7 +98,7 @@ const CustomizeClassic = () => {
     // Use IDR pricing consistent with server
     const basePrice = 25000 // IDR
     const itemsPrice = placed.reduce((sum, item) => {
-      const catalogItem = CATALOG_ITEMS.find(c => c.id === item.catalogId)
+      const catalogItem = catalogItems.find(c => c.id === item.catalogId)
       if (catalogItem?.kind === 'bead') return sum + 10000
       if (catalogItem?.kind === 'charm') return sum + 15000
       return sum

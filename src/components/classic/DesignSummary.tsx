@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,8 +14,8 @@ import {
   Package,
   User
 } from 'lucide-react'
-import { getItemById } from '@/lib/catalog'
-import type { PlacedItem } from '@/lib/catalog'
+import { fetchCatalogItems } from '@/lib/catalog'
+import type { PlacedItem, CatalogItem } from '@/lib/catalog'
 
 interface DesignSummaryProps {
   state: {
@@ -49,13 +49,30 @@ export const DesignSummary = ({
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [designName, setDesignName] = useState('')
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([])
+
+  useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        const items = await fetchCatalogItems()
+        setCatalogItems(items)
+      } catch (error) {
+        console.error('Failed to load catalog:', error)
+      }
+    }
+    loadCatalog()
+  }, [])
+
+  const getItemFromCatalog = (id: string): CatalogItem | undefined => {
+    return catalogItems.find(item => item.id === id)
+  }
 
   // Create line items including keyring
   const getLineItems = (): LineItem[] => {
     const items: LineItem[] = []
     
     // Add keyring
-    const keyring = getItemById(state.keyringId)
+    const keyring = getItemFromCatalog(state.keyringId)
     if (keyring) {
       items.push({
         uid: `keyring_${state.keyringId}`,
@@ -70,7 +87,7 @@ export const DesignSummary = ({
     state.placed
       .sort((a, b) => a.positionIndex - b.positionIndex)
       .forEach(item => {
-        const catalogItem = getItemById(item.catalogId)
+        const catalogItem = getItemFromCatalog(item.catalogId)
         if (catalogItem) {
           items.push({
             uid: item.uid,

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, Package, Circle, Star, KeyRound } from 'lucide-react'
-import { CATALOG_ITEMS, getItemsByKind, searchItems } from '@/lib/catalog'
+import { fetchCatalogItems, getItemsByKind, searchItems } from '@/lib/catalog'
 import type { CatalogItem, ItemKind } from '@/lib/catalog'
 
 interface SelectionPanelProps {
@@ -111,26 +111,65 @@ const ItemCard = ({
 export const SelectionPanel = ({ onItemClick, onDragStart, onDragEnd }: SelectionPanelProps) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('all')
+  const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([])
+  const [filteredItems, setFilteredItems] = useState<CatalogItem[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const getFilteredItems = () => {
-    let items = CATALOG_ITEMS
-
-    // Filter by kind
-    if (activeTab !== 'all') {
-      items = getItemsByKind(activeTab as ItemKind)
+  useEffect(() => {
+    const loadCatalog = async () => {
+      try {
+        const items = await fetchCatalogItems()
+        setCatalogItems(items)
+        setFilteredItems(items)
+      } catch (error) {
+        console.error('Failed to load catalog:', error)
+      } finally {
+        setLoading(false)
+      }
     }
+    loadCatalog()
+  }, [])
 
-    // Filter by search
-    if (searchQuery.trim()) {
-      items = searchItems(searchQuery).filter(item => 
-        activeTab === 'all' || item.kind === activeTab
-      )
+  useEffect(() => {
+    const updateFilteredItems = async () => {
+      let items = catalogItems
+
+      // Filter by kind first
+      if (activeTab !== 'all') {
+        items = items.filter(item => item.kind === activeTab)
+      }
+
+      // Then filter by search
+      if (searchQuery.trim()) {
+        const lowercaseQuery = searchQuery.toLowerCase()
+        items = items.filter(item => 
+          item.name.toLowerCase().includes(lowercaseQuery) ||
+          item.tags?.some(tag => tag.toLowerCase().includes(lowercaseQuery))
+        )
+      }
+
+      setFilteredItems(items)
     }
+    updateFilteredItems()
+  }, [searchQuery, activeTab, catalogItems])
 
-    return items
+  if (loading) {
+    return (
+      <Card className="h-[600px] flex flex-col">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Catalog Items
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-32">
+            <div>Loading catalog...</div>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
-
-  const filteredItems = getFilteredItems()
 
   return (
     <Card className="h-[600px] flex flex-col">

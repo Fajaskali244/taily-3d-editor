@@ -1,10 +1,8 @@
 import { supabase } from '@/integrations/supabase/client'
-import { CATALOG_ITEMS } from './catalog'
-import type { CatalogItem } from './catalog'
+import { getItemById } from './catalog'
 
-export const getItemById = (id: string): CatalogItem | undefined => {
-  return CATALOG_ITEMS.find(item => item.id === id)
-}
+// Re-export the getItemById function for backward compatibility
+export { getItemById }
 
 export const getSignedUrl = async (path: string, bucket: string = 'design-models'): Promise<string | null> => {
   try {
