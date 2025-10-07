@@ -10,6 +10,7 @@ interface CheckoutRequest {
   cartItemIds: string[]
   userId: string
   userEmail?: string
+  shippingAddressId?: string
 }
 
 serve(async (req) => {
@@ -40,7 +41,7 @@ serve(async (req) => {
       throw new Error('Unauthorized')
     }
 
-    const { cartItemIds, userId, userEmail }: CheckoutRequest = await req.json()
+    const { cartItemIds, userId, userEmail, shippingAddressId }: CheckoutRequest = await req.json()
     
     if (!Array.isArray(cartItemIds) || cartItemIds.length === 0) {
       throw new Error('cartItemIds required')
@@ -60,6 +61,20 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+
+    // Verify shipping address ownership if provided
+    if (shippingAddressId) {
+      const { data: addressCheck, error: addressError } = await supabaseAdmin
+        .from('shipping_addresses')
+        .select('user_id')
+        .eq('id', shippingAddressId)
+        .eq('user_id', userId)
+        .single()
+      
+      if (addressError || !addressCheck) {
+        throw new Error('Invalid shipping address or unauthorized access')
+      }
+    }
 
     // Get cart items with snapshots for pricing
     const { data: cartItems, error: cartError } = await supabaseAdmin
@@ -105,22 +120,28 @@ serve(async (req) => {
       .map(b => b.toString(16).padStart(2, '0')).join(''))
 
     // Create order with upsert for idempotency
+    const orderData: any = {
+      idempotency_key: idempotencyKey,
+      user_id: userId,
+      subtotal: subtotal,
+      shipping_cost: shipping,
+      discount_total: discount_total,
+      tax_total: tax,
+      grand_total: grand_total,
+      total_price: grand_total, // Keep for compatibility
+      payment_method: 'manual',
+      payment_status: 'pending',
+      fulfillment_status: 'unfulfilled',
+    }
+
+    // Use secure address reference if provided, otherwise leave as null
+    if (shippingAddressId) {
+      orderData.shipping_address_id = shippingAddressId
+    }
+
     const { data: order, error: orderError } = await supabaseAdmin
       .from('orders')
-      .upsert({
-        idempotency_key: idempotencyKey,
-        user_id: userId,
-        subtotal: subtotal,
-        shipping_cost: shipping,
-        discount_total: discount_total,
-        tax_total: tax,
-        grand_total: grand_total,
-        total_price: grand_total, // Keep for compatibility
-        payment_method: 'manual',
-        payment_status: 'pending',
-        fulfillment_status: 'unfulfilled',
-        shipping_address: 'TBD' // Will be updated later
-      }, { 
+      .upsert(orderData, { 
         onConflict: 'idempotency_key',
         ignoreDuplicates: false
       })

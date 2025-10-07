@@ -61,6 +61,8 @@ export type Database = {
           slug: string | null
           tags: string[] | null
           thumbnail: string
+          thumbnail_path: string | null
+          thumbnail_url: string | null
           updated_at: string | null
         }
         Insert: {
@@ -74,6 +76,8 @@ export type Database = {
           slug?: string | null
           tags?: string[] | null
           thumbnail: string
+          thumbnail_path?: string | null
+          thumbnail_url?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -87,7 +91,24 @@ export type Database = {
           slug?: string | null
           tags?: string[] | null
           thumbnail?: string
+          thumbnail_path?: string | null
+          thumbnail_url?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      catalog_thumbnails: {
+        Row: {
+          created_at: string
+          id: number
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+        }
+        Update: {
+          created_at?: string
+          id?: number
         }
         Relationships: []
       }
@@ -251,7 +272,8 @@ export type Database = {
           idempotency_key: string | null
           payment_method: string | null
           payment_status: string
-          shipping_address: string
+          shipping_address: string | null
+          shipping_address_id: string | null
           shipping_cost: number | null
           subtotal: number | null
           tax_total: number | null
@@ -268,7 +290,8 @@ export type Database = {
           idempotency_key?: string | null
           payment_method?: string | null
           payment_status?: string
-          shipping_address: string
+          shipping_address?: string | null
+          shipping_address_id?: string | null
           shipping_cost?: number | null
           subtotal?: number | null
           tax_total?: number | null
@@ -285,7 +308,8 @@ export type Database = {
           idempotency_key?: string | null
           payment_method?: string | null
           payment_status?: string
-          shipping_address?: string
+          shipping_address?: string | null
+          shipping_address_id?: string | null
           shipping_cost?: number | null
           subtotal?: number | null
           tax_total?: number | null
@@ -293,7 +317,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_shipping_address_id_fkey"
+            columns: ["shipping_address_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_addresses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_events: {
         Row: {
