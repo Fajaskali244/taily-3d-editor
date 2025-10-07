@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Search, Package, Circle, Star, KeyRound } from 'lucide-react'
 import { fetchCatalogItems, getItemsByKind, searchItems } from '@/lib/catalog'
 import type { CatalogItem, ItemKind } from '@/lib/catalog'
+import { catalogThumbUrl, FALLBACK_IMAGE } from '@/lib/catalogThumbs'
 
 interface SelectionPanelProps {
   onItemClick: (item: CatalogItem) => void
@@ -68,11 +69,12 @@ const ItemCard = ({
         {/* Thumbnail */}
         <div className="aspect-square mb-2 overflow-hidden rounded-lg bg-gray-50 relative">
           <img 
-            src={item.thumbnail} 
+            src={catalogThumbUrl(item.thumbnail)} 
             alt={item.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
             onError={(e) => {
-              e.currentTarget.src = '/placeholder.svg'
+              e.currentTarget.src = FALLBACK_IMAGE
             }}
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
