@@ -42,8 +42,8 @@ export function resolveThumbUrl(row: {
   const key = normalizeThumbPath(row?.thumbnail_path ?? row?.thumbnail ?? null)
   if (!key) return FALLBACK_IMG
   
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(key)
-  return data.publicUrl || FALLBACK_IMG
+  const { publicUrl } = supabase.storage.from(BUCKET).getPublicUrl(key).data
+  return publicUrl || FALLBACK_IMG
 }
 
 /**
@@ -62,8 +62,8 @@ export function catalogThumbUrl(pathOrUrl?: string | null): string {
   const bucketPath = normalizeThumbPath(path)
   if (!bucketPath) return FALLBACK_IMG
   
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(bucketPath)
-  return data.publicUrl || FALLBACK_IMG
+  const { publicUrl } = supabase.storage.from(BUCKET).getPublicUrl(bucketPath).data
+  return publicUrl || FALLBACK_IMG
 }
 
 export const FALLBACK_IMAGE = FALLBACK_IMG
