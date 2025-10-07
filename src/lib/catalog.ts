@@ -9,6 +9,8 @@ export interface CatalogItem {
   price: number
   glbPath: string
   thumbnail: string
+  thumbnail_url?: string | null
+  thumbnail_path?: string | null
   height?: number // For stacking calculations (in mm)
   tags?: string[]
   slug?: string
@@ -34,6 +36,8 @@ const transformCatalogItem = (item: any): CatalogItem => ({
   price: item.price,
   glbPath: item.glb_path,
   thumbnail: item.thumbnail,
+  thumbnail_url: item.thumbnail_url,
+  thumbnail_path: item.thumbnail_path,
   height: item.height_mm,
   tags: item.tags || [],
   slug: item.slug
@@ -47,7 +51,7 @@ export const fetchCatalogItems = async (): Promise<CatalogItem[]> => {
 
   const { data, error } = await supabase
     .from('catalog_items')
-    .select('*')
+    .select('id, kind, name, price, glb_path, thumbnail, thumbnail_url, thumbnail_path, height_mm, tags, slug')
     .order('kind')
     .order('price')
 
