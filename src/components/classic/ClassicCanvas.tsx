@@ -221,20 +221,20 @@ const Scene = ({ state, onRemoveItem }: {
       accMm += heightMm + SPACING_MM
     }
     
-    // Total beads height (sum of all bead heights + gaps between them)
+    // Total beads height (without the last spacing)
     const totalBeadsMm = sortedItems.length > 0 
-      ? accMm - STEM_CLEARANCE_MM - SPACING_MM
+      ? accMm - SPACING_MM - STEM_CLEARANCE_MM
       : 0
     
-    // Dynamic stem: clearance + total beads + tail, with minimum and max
-    const wantedStemMm = sortedItems.length > 0
-      ? STEM_CLEARANCE_MM + totalBeadsMm + STEM_TAIL_MM
-      : STEM_MIN_MM
-    
-    const stemLengthMm = clamp(wantedStemMm, STEM_MIN_MM, STEM_MAX_MM)
+    // Calculate stem length
+    const desiredStemMm = Math.max(
+      STEM_MIN_MM,
+      STEM_CLEARANCE_MM + totalBeadsMm + STEM_TAIL_MM
+    )
+    const stemLengthMm = clamp(desiredStemMm, STEM_MIN_MM, STEM_MAX_MM)
     const stemLengthUnits = mm2u(stemLengthMm)
     
-    return { positions, stemLengthUnits, stemLengthMm }
+    return { positions, stemLengthUnits }
   }, [state.placed, catalogById])
 
   const ringColor = state.params.colorTheme === 'gold' ? '#FFD700' : '#C0C0C0'
@@ -247,10 +247,10 @@ const Scene = ({ state, onRemoveItem }: {
       <directionalLight position={[-10, 5, -5]} intensity={0.4} />
       <directionalLight position={[0, -10, 0]} intensity={0.2} />
 
-      {/* Keyring - always at top anchor */}
+      {/* Keyring */}
       <KeyringMesh keyringId={state.keyringId} colorTheme={state.params.colorTheme} />
 
-      {/* Dynamic stem - extends downward from ring based on bead count */}
+      {/* Dynamic stem */}
       <mesh position={[0, TOP_Y - beadLayout.stemLengthUnits / 2, 0]}>
         <cylinderGeometry args={[STEM_RADIUS, STEM_RADIUS, beadLayout.stemLengthUnits, STEM_SEGMENTS]} />
         <meshStandardMaterial color={ringColor} metalness={0.8} roughness={0.2} />
