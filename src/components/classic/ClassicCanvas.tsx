@@ -36,7 +36,7 @@ const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?
 
   // Fallback geometry if GLB not available
   const ringGeometry = (
-    <group position={[0, -2, 0]}>
+    <group position={[0, 2, 0]}>
       {/* Main ring */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.5, 0.1, 8, 16]} />
@@ -47,19 +47,9 @@ const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?
         />
       </mesh>
       
-      {/* Vertical pin */}
-      <mesh position={[0, 2, 0]}>
-        <cylinderGeometry args={[0.02, 0.02, 4, 8]} />
-        <meshStandardMaterial 
-          color={colorTheme === 'gold' ? '#FFD700' : '#C0C0C0'} 
-          metalness={0.8} 
-          roughness={0.2} 
-        />
-      </mesh>
-      
-      {/* Base */}
-      <mesh position={[0, 0.1, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.3, 0.3, 0.1, 16]} />
+      {/* Connector chain */}
+      <mesh position={[0, -0.3, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.3, 8]} />
         <meshStandardMaterial 
           color={colorTheme === 'gold' ? '#FFD700' : '#C0C0C0'} 
           metalness={0.8} 
@@ -73,7 +63,7 @@ const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?
   if (modelUrl) {
     try {
       const { scene } = useGLTF(modelUrl)
-      return <primitive object={scene} position={[0, -2, 0]} />
+      return <primitive object={scene} position={[0, 2, 0]} />
     } catch (error) {
       console.warn('Failed to load keyring GLB, using fallback geometry')
       return ringGeometry
@@ -109,8 +99,8 @@ const PlacedItemMesh = ({
     loadModel()
   }, [item.catalogId])
 
-  // Calculate position based on stack
-  const yPosition = 0.2 + stackHeight * 0.15 // Spacing between items
+  // Calculate position based on stack - beads hang down from ring
+  const yPosition = 1.3 - stackHeight * 0.4 // Hanging down with better spacing
 
   // Fallback geometries
   const getFallbackGeometry = () => {
@@ -174,13 +164,10 @@ const Scene = ({ state, onRemoveItem }: {
   state: ClassicCanvasProps['state']; 
   onRemoveItem: (uid: string) => void 
 }) => {
-  // Calculate cumulative heights for stacking
+  // Calculate cumulative heights for stacking - each item gets consistent spacing
   const getStackHeight = (index: number) => {
-    return state.placed.slice(0, index).reduce((height, item) => {
-      // Use a default height since we can't make async calls here
-      const defaultHeight = 12 // Default 12mm height for beads/charms
-      return height + defaultHeight
-    }, 0) / 100 // Convert mm to units
+    // Return simple index-based spacing for clearer separation
+    return index
   }
 
   return (
