@@ -1,11 +1,26 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Environment, ContactShadows, useGLTF } from '@react-three/drei'
+import { OrbitControls, Environment, ContactShadows } from '@react-three/drei'
 import * as THREE from 'three'
 import { Card, CardContent } from '@/components/ui/card'
 import { getSignedUrl } from '@/lib/storage'
-import { getItemById, fetchCatalogItems } from '@/lib/catalog'
+import { fetchCatalogItems } from '@/lib/catalog'
 import type { PlacedItem, CatalogItem } from '@/lib/catalog'
+import { ModelGLB } from '@/components/3d/ModelGLB'
+import {
+  MM_PER_UNIT,
+  mm2u,
+  TOP_Y,
+  STEM_CLEARANCE_MM,
+  SPACING_MM,
+  STEM_TAIL_MM,
+  STEM_MIN_MM,
+  STEM_MAX_MM,
+  DEFAULT_BEAD_HEIGHT_MM,
+  STEM_RADIUS,
+  STEM_SEGMENTS,
+  clamp
+} from '@/components/3d/constants'
 
 interface ClassicCanvasProps {
   state: {
@@ -22,11 +37,14 @@ interface ClassicCanvasProps {
 // Individual 3D components
 const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?: string }) => {
   const [modelUrl, setModelUrl] = useState<string | null>(null)
+  const [catalogItem, setCatalogItem] = useState<CatalogItem | null>(null)
   
   useEffect(() => {
     const loadModel = async () => {
-      const item = await getItemById(keyringId)
+      const items = await fetchCatalogItems()
+      const item = items.find(i => i.id === keyringId)
       if (item) {
+        setCatalogItem(item)
         const url = await getSignedUrl(item.glbPath.replace('/models/', ''))
         setModelUrl(url)
       }
@@ -34,24 +52,16 @@ const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?
     loadModel()
   }, [keyringId])
 
+  const ringColor = colorTheme === 'gold' ? '#FFD700' : '#C0C0C0'
+
   // Fallback geometry if GLB not available
   const ringGeometry = (
-    <group position={[0, 2, 0]}>
+    <group position={[0, TOP_Y, 0]}>
       {/* Main ring */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.5, 0.1, 8, 16]} />
         <meshStandardMaterial 
-          color={colorTheme === 'gold' ? '#FFD700' : '#C0C0C0'} 
-          metalness={0.8} 
-          roughness={0.2} 
-        />
-      </mesh>
-      
-      {/* Connector chain */}
-      <mesh position={[0, -0.3, 0]}>
-        <cylinderGeometry args={[0.02, 0.02, 0.3, 8]} />
-        <meshStandardMaterial 
-          color={colorTheme === 'gold' ? '#FFD700' : '#C0C0C0'} 
+          color={ringColor}
           metalness={0.8} 
           roughness={0.2} 
         />
@@ -61,13 +71,11 @@ const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?
 
   // Try to load GLB, fallback to geometry
   if (modelUrl) {
-    try {
-      const { scene } = useGLTF(modelUrl)
-      return <primitive object={scene} position={[0, 2, 0]} />
-    } catch (error) {
-      console.warn('Failed to load keyring GLB, using fallback geometry')
-      return ringGeometry
-    }
+    return (
+      <>
+        <ModelGLB url={modelUrl} position={[0, TOP_Y, 0]} />
+      </>
+    )
   }
 
   return ringGeometry
@@ -75,11 +83,11 @@ const KeyringMesh = ({ keyringId, colorTheme }: { keyringId: string; colorTheme?
 
 const PlacedItemMesh = ({ 
   item, 
-  stackHeight, 
+  yPosition,
   onRemove 
 }: { 
   item: PlacedItem; 
-  stackHeight: number; 
+  yPosition: number;
   onRemove: (uid: string) => void 
 }) => {
   const meshRef = useRef<THREE.Group>(null)
@@ -90,7 +98,8 @@ const PlacedItemMesh = ({
   
   useEffect(() => {
     const loadModel = async () => {
-      const itemData = await getItemById(item.catalogId)
+      const items = await fetchCatalogItems()
+      const itemData = items.find(i => i.id === item.catalogId)
       if (itemData) {
         setCatalogItem(itemData)
         const url = await getSignedUrl(itemData.glbPath.replace('/models/', ''))
@@ -121,11 +130,9 @@ const PlacedItemMesh = ({
     animate()
   }, [])
 
-
-  // Calculate position based on stack - beads hang down from ring
-  const targetY = 1.3 - stackHeight * 0.4 // Final position
-  const startY = 3.5 // Start from above the ring
-  const yPosition = startY + (targetY - startY) * animationProgress
+  // Animate from above to final position
+  const startY = TOP_Y + 1.5 // Start from above the ring
+  const animatedY = startY + (yPosition - startY) * animationProgress
 
 
   // Fallback geometries
@@ -154,23 +161,10 @@ const PlacedItemMesh = ({
     return null
   }
 
-  const content = modelUrl ? (
-    (() => {
-      try {
-        const { scene } = useGLTF(modelUrl)
-        return <primitive object={scene} scale={isHovered ? 1.1 : 1.0} />
-      } catch (error) {
-        return getFallbackGeometry()
-      }
-    })()
-  ) : (
-    getFallbackGeometry()
-  )
-
   return (
     <group
       ref={meshRef}
-      position={[0, yPosition, 0]}
+      position={[0, animatedY, 0]}
       rotation={item.rotation}
       onPointerEnter={() => setIsHovered(true)}
       onPointerLeave={() => setIsHovered(false)}
@@ -181,7 +175,11 @@ const PlacedItemMesh = ({
         }
       }}
     >
-      {content}
+      {modelUrl ? (
+        <ModelGLB url={modelUrl} scale={isHovered ? 1.1 : 1.0} />
+      ) : (
+        getFallbackGeometry()
+      )}
     </group>
   )
 }
@@ -190,48 +188,56 @@ const Scene = ({ state, onRemoveItem }: {
   state: ClassicCanvasProps['state']; 
   onRemoveItem: (uid: string) => void 
 }) => {
-  // Calculate cumulative heights for stacking - each item gets consistent spacing
-  const getStackHeight = (index: number) => {
-    // Return simple index-based spacing for clearer separation
-    return index
-  }
+  const [catalogById, setCatalogById] = useState<Map<string, CatalogItem>>(new Map())
+  
+  // Load catalog items once
+  useEffect(() => {
+    const loadCatalog = async () => {
+      const items = await fetchCatalogItems()
+      const map = new Map(items.map(item => [item.id, item]))
+      setCatalogById(map)
+    }
+    loadCatalog()
+  }, [])
 
-  // Calculate wire segments between beads
-  const getWireSegments = () => {
-    const segments: JSX.Element[] = []
-    const sortedItems = state.placed.sort((a, b) => a.positionIndex - b.positionIndex)
+  // Calculate bead positions and stem length based on actual heights
+  const beadLayout = useMemo(() => {
+    const sortedItems = [...state.placed].sort((a, b) => a.positionIndex - b.positionIndex)
     
-    // Wire from ring to first bead
-    if (sortedItems.length > 0) {
-      const firstBeadY = 1.3
-      const ringBottomY = 1.7
-      const wireLength = ringBottomY - firstBeadY
+    let accMm = STEM_CLEARANCE_MM
+    const positions: { item: PlacedItem; yWorld: number; heightMm: number }[] = []
+    
+    for (const item of sortedItems) {
+      const catalogItem = catalogById.get(item.catalogId)
+      const heightMm = catalogItem?.height ?? DEFAULT_BEAD_HEIGHT_MM
       
-      segments.push(
-        <mesh key="wire-ring-to-first" position={[0, ringBottomY - wireLength / 2, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, wireLength, 8]} />
-          <meshStandardMaterial color="#A0A0A0" metalness={0.8} roughness={0.2} />
-        </mesh>
-      )
+      // Center of this bead from top
+      const centerFromTopMm = accMm + heightMm / 2
+      const yWorld = TOP_Y - mm2u(centerFromTopMm)
+      
+      positions.push({ item, yWorld, heightMm })
+      
+      // Advance accumulator
+      accMm += heightMm + SPACING_MM
     }
     
-    // Wires between beads
-    for (let i = 0; i < sortedItems.length - 1; i++) {
-      const currentY = 1.3 - i * 0.4
-      const nextY = 1.3 - (i + 1) * 0.4
-      const wireLength = currentY - nextY
-      const wireCenterY = currentY - wireLength / 2
-      
-      segments.push(
-        <mesh key={`wire-${i}`} position={[0, wireCenterY, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, wireLength, 8]} />
-          <meshStandardMaterial color="#A0A0A0" metalness={0.8} roughness={0.2} />
-        </mesh>
-      )
-    }
+    // Total beads height (sum of all bead heights + gaps between them)
+    const totalBeadsMm = sortedItems.length > 0 
+      ? accMm - STEM_CLEARANCE_MM - SPACING_MM
+      : 0
     
-    return segments
-  }
+    // Dynamic stem: clearance + total beads + tail, with minimum and max
+    const wantedStemMm = sortedItems.length > 0
+      ? STEM_CLEARANCE_MM + totalBeadsMm + STEM_TAIL_MM
+      : STEM_MIN_MM
+    
+    const stemLengthMm = clamp(wantedStemMm, STEM_MIN_MM, STEM_MAX_MM)
+    const stemLengthUnits = mm2u(stemLengthMm)
+    
+    return { positions, stemLengthUnits, stemLengthMm }
+  }, [state.placed, catalogById])
+
+  const ringColor = state.params.colorTheme === 'gold' ? '#FFD700' : '#C0C0C0'
 
   return (
     <>
@@ -241,23 +247,24 @@ const Scene = ({ state, onRemoveItem }: {
       <directionalLight position={[-10, 5, -5]} intensity={0.4} />
       <directionalLight position={[0, -10, 0]} intensity={0.2} />
 
-      {/* Keyring */}
+      {/* Keyring - always at top anchor */}
       <KeyringMesh keyringId={state.keyringId} colorTheme={state.params.colorTheme} />
 
-      {/* Wire segments */}
-      {getWireSegments()}
+      {/* Dynamic stem - extends downward from ring based on bead count */}
+      <mesh position={[0, TOP_Y - beadLayout.stemLengthUnits / 2, 0]}>
+        <cylinderGeometry args={[STEM_RADIUS, STEM_RADIUS, beadLayout.stemLengthUnits, STEM_SEGMENTS]} />
+        <meshStandardMaterial color={ringColor} metalness={0.8} roughness={0.2} />
+      </mesh>
 
       {/* Placed items */}
-      {state.placed
-        .sort((a, b) => a.positionIndex - b.positionIndex)
-        .map((item, index) => (
-          <PlacedItemMesh
-            key={item.uid}
-            item={item}
-            stackHeight={getStackHeight(index)}
-            onRemove={onRemoveItem}
-          />
-        ))}
+      {beadLayout.positions.map(({ item, yWorld }) => (
+        <PlacedItemMesh
+          key={item.uid}
+          item={item}
+          yPosition={yWorld}
+          onRemove={onRemoveItem}
+        />
+      ))}
 
       {/* Contact shadows */}
       <ContactShadows opacity={0.4} scale={3} blur={2} far={2} resolution={256} color="#000000" />
