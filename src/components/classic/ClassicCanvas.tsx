@@ -86,7 +86,6 @@ const PlacedItemMesh = ({
   const [modelUrl, setModelUrl] = useState<string | null>(null)
   const [isHovered, setIsHovered] = useState(false)
   const [catalogItem, setCatalogItem] = useState<CatalogItem | null>(null)
-  const [animationProgress, setAnimationProgress] = useState(0)
   
   useEffect(() => {
     const loadModel = async () => {
@@ -100,33 +99,8 @@ const PlacedItemMesh = ({
     loadModel()
   }, [item.catalogId])
 
-  // Animate descent
-  useEffect(() => {
-    const startTime = Date.now()
-    const duration = 800 // ms
-    
-    const animate = () => {
-      const elapsed = Date.now() - startTime
-      const progress = Math.min(elapsed / duration, 1)
-      
-      // Easing function for smooth descent
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setAnimationProgress(eased)
-      
-      if (progress < 1) {
-        requestAnimationFrame(animate)
-      }
-    }
-    
-    animate()
-  }, [])
-
-
   // Calculate position based on stack - beads hang down from ring
-  const targetY = 1.3 - stackHeight * 0.4 // Final position
-  const startY = 3.5 // Start from above the ring
-  const yPosition = startY + (targetY - startY) * animationProgress
-
+  const yPosition = 1.3 - stackHeight * 0.4 // Hanging down with better spacing
 
   // Fallback geometries
   const getFallbackGeometry = () => {
@@ -196,43 +170,6 @@ const Scene = ({ state, onRemoveItem }: {
     return index
   }
 
-  // Calculate wire segments between beads
-  const getWireSegments = () => {
-    const segments: JSX.Element[] = []
-    const sortedItems = state.placed.sort((a, b) => a.positionIndex - b.positionIndex)
-    
-    // Wire from ring to first bead
-    if (sortedItems.length > 0) {
-      const firstBeadY = 1.3
-      const ringBottomY = 1.7
-      const wireLength = ringBottomY - firstBeadY
-      
-      segments.push(
-        <mesh key="wire-ring-to-first" position={[0, ringBottomY - wireLength / 2, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, wireLength, 8]} />
-          <meshStandardMaterial color="#A0A0A0" metalness={0.8} roughness={0.2} />
-        </mesh>
-      )
-    }
-    
-    // Wires between beads
-    for (let i = 0; i < sortedItems.length - 1; i++) {
-      const currentY = 1.3 - i * 0.4
-      const nextY = 1.3 - (i + 1) * 0.4
-      const wireLength = currentY - nextY
-      const wireCenterY = currentY - wireLength / 2
-      
-      segments.push(
-        <mesh key={`wire-${i}`} position={[0, wireCenterY, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, wireLength, 8]} />
-          <meshStandardMaterial color="#A0A0A0" metalness={0.8} roughness={0.2} />
-        </mesh>
-      )
-    }
-    
-    return segments
-  }
-
   return (
     <>
       {/* Lighting */}
@@ -243,9 +180,6 @@ const Scene = ({ state, onRemoveItem }: {
 
       {/* Keyring */}
       <KeyringMesh keyringId={state.keyringId} colorTheme={state.params.colorTheme} />
-
-      {/* Wire segments */}
-      {getWireSegments()}
 
       {/* Placed items */}
       {state.placed
