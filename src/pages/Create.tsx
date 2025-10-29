@@ -6,6 +6,7 @@ import TextPromptForm from '../components/TextPromptForm'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
+import { EDGE_FN_BASE } from '../config'
 
 export default function Create() {
   const nav = useNavigate()
@@ -29,7 +30,7 @@ export default function Create() {
 
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8787/api/meshy/tasks', {
+      const res = await fetch(`${EDGE_FN_BASE}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

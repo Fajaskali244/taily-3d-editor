@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { EDGE_FN_BASE } from '../config'
 import { Progress } from '@/components/ui/progress'
 
 interface GenerationTask {
@@ -15,7 +16,7 @@ export function GenerationProgress({ taskId }: { taskId: string }) {
   useEffect(() => {
     const pollTask = async () => {
       try {
-        const res = await fetch(`http://localhost:8787/api/meshy/tasks/${taskId}`)
+        const res = await fetch(`${EDGE_FN_BASE}/tasks/${taskId}`)
         if (res.ok) {
           const data = await res.json()
           setTask(data)
