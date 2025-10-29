@@ -26,7 +26,8 @@ export async function fetchTask(id: string): Promise<GenerationTask> {
   );
 
   if (!res.ok) {
-    throw new Error(`Status fetch failed: ${res.status}`);
+    const text = await res.text();
+    throw new Error(`Status fetch failed: ${res.status} - ${text}`);
   }
 
   return res.json();

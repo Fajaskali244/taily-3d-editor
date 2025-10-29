@@ -36,7 +36,7 @@ export default function Create() {
         throw new Error('No valid session')
       }
 
-      const res = await fetch(`${EDGE_FN_BASE}/meshy`, {
+      const res = await fetch(`${EDGE_FN_BASE}/meshy/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
