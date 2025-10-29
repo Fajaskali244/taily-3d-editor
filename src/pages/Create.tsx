@@ -36,13 +36,13 @@ export default function Create() {
         throw new Error('No valid session')
       }
 
-      const res = await fetch(`${EDGE_FN_BASE}/tasks`, {
+      const res = await fetch(`${EDGE_FN_BASE}/meshy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ ...body, userId: user.id })
       })
 
       const data = await res.json()
@@ -56,6 +56,7 @@ export default function Create() {
         description: 'Your 3D model is being created...'
       })
       
+      // Navigate with the actual task ID returned from the function
       nav(`/review/${data.id}`)
     } catch (error) {
       console.error('Task creation error:', error)
