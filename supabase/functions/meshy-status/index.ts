@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,9 +20,9 @@ serve(async (req) => {
   }
 
   const url = new URL(req.url);
-  const id = url.searchParams.get("id");
-  if (!id) {
-    return new Response("Missing id", { status: 400, headers: corsHeaders });
+  const id = (url.searchParams.get("id") || "").trim();
+  if (!id || !UUID_RE.test(id)) {
+    return new Response("Invalid task ID", { status: 400, headers: corsHeaders });
   }
 
   // Use caller JWT so RLS enforces owner-only reads
