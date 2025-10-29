@@ -100,7 +100,7 @@ export default function Review() {
           <div className="space-y-4">
             <div className="border rounded-lg p-4">
               <h2 className="font-semibold mb-4">Generation Progress</h2>
-              {taskId && (
+              {taskId && UUID_RE.test(taskId) && (
                 <GenerationProgress 
                   taskId={taskId} 
                   onSignedGlb={(url) => setGlbUrl(url)}
