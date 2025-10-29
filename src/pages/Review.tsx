@@ -16,7 +16,7 @@ interface Task {
 }
 
 export default function Review() {
-  const { taskId: rawTaskId } = useParams()
+  const params = useParams()
   const nav = useNavigate()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -24,13 +24,13 @@ export default function Review() {
   const [approving, setApproving] = useState(false)
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined)
 
-  // Strip any leading colon and validate UUID format
-  const taskId = rawTaskId?.replace(/^:/, '') || null
+  // Get taskId from route params
+  const taskId = params.taskId || null
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
   
   // Show error if invalid task ID
   useEffect(() => {
-    if (rawTaskId && taskId && !UUID_RE.test(taskId)) {
+    if (taskId && !UUID_RE.test(taskId)) {
       toast({
         title: 'Invalid task ID',
         description: 'The task ID in the URL is not valid.',
@@ -38,7 +38,7 @@ export default function Review() {
       })
       nav('/create')
     }
-  }, [rawTaskId, taskId, toast, nav])
+  }, [taskId, toast, nav])
 
   async function handleApprove() {
     if (!task?.model_glb_url) return
