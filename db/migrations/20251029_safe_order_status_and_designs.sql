@@ -56,6 +56,22 @@ BEGIN
     IF has_column THEN
       -- Drop default first to avoid type conflict during cast
       EXECUTE 'ALTER TABLE public.orders ALTER COLUMN status DROP DEFAULT';
+      
+      -- Pre-sanitize any legacy status values to avoid cast failures
+      EXECUTE $sanitize$
+        ALTER TABLE public.orders
+          ALTER COLUMN status TYPE text USING status::text
+      $sanitize$;
+      
+      EXECUTE $clean$
+        UPDATE public.orders
+        SET status = 'draft'
+        WHERE status NOT IN (
+          'draft','awaiting_generation','generating','pending_review',
+          'approved_for_print','printing','fulfilled','canceled'
+        )
+      $clean$;
+      
       EXECUTE $cast$
         ALTER TABLE public.orders
         ALTER COLUMN status TYPE public.order_status_new
