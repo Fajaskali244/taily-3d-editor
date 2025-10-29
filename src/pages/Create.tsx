@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
+import { supabase } from '@/integrations/supabase/client'
 import UploadDropzone from '../components/UploadDropzone'
 import TextPromptForm from '../components/TextPromptForm'
 import { Button } from '@/components/ui/button'
@@ -30,11 +31,16 @@ export default function Create() {
 
     setLoading(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
+        throw new Error('No valid session')
+      }
+
       const res = await fetch(`${EDGE_FN_BASE}/tasks`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-user-id': user.id
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify(body)
       })

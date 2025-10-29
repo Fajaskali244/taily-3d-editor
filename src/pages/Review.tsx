@@ -22,27 +22,7 @@ export default function Review() {
   const { user } = useAuth()
   const [task, setTask] = useState<Task | null>(null)
   const [approving, setApproving] = useState(false)
-
-  useEffect(() => {
-    const pollTask = async () => {
-      try {
-        const res = await fetch(`${EDGE_FN_BASE}/tasks/${taskId}`)
-        if (res.ok) {
-          const data = await res.json()
-          setTask(data)
-          if (['SUCCEEDED', 'FAILED', 'DELETED'].includes(data.status)) {
-            clearInterval(interval)
-          }
-        }
-      } catch (error) {
-        console.error('Poll error:', error)
-      }
-    }
-
-    pollTask()
-    const interval = setInterval(pollTask, 2500)
-    return () => clearInterval(interval)
-  }, [taskId])
+  const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined)
 
   async function handleApprove() {
     if (!task?.model_glb_url) return
@@ -104,7 +84,12 @@ export default function Review() {
           <div className="space-y-4">
             <div className="border rounded-lg p-4">
               <h2 className="font-semibold mb-4">Generation Progress</h2>
-              {taskId && <GenerationProgress taskId={taskId} />}
+              {taskId && (
+                <GenerationProgress 
+                  taskId={taskId} 
+                  onSignedGlb={(url) => setGlbUrl(url)}
+                />
+              )}
             </div>
             
             {task?.status === 'FAILED' && (
@@ -125,7 +110,7 @@ export default function Review() {
           </div>
 
           <div>
-            <MeshyModelPreview glbUrl={task?.model_glb_url} />
+            <MeshyModelPreview glbUrl={glbUrl || task?.model_glb_url} />
           </div>
         </div>
 

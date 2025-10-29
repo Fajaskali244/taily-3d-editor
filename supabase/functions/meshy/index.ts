@@ -1,14 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const MESHY_API_KEY = Deno.env.get("MESHY_API_KEY")!;
+const ALLOWED = Deno.env.get("ALLOWED_ORIGIN") ?? "*";
 
-const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+function userClient(req: Request) {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+    auth: { persistSession: false }
+  });
+}
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-user-id",
+  "Access-Control-Allow-Origin": ALLOWED,
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -20,15 +29,56 @@ const json = (body: unknown, init: ResponseInit = {}) =>
 
 type Source = "image" | "multi-image" | "text";
 
-async function createTask(userId: string, body: any) {
+async function archiveOutputs(task: any, meshy: any) {
+  const uid = task.user_id;
+  const base = `${uid}/${task.id}`;
+  const uploads: Array<{ url: string, path: string }> = [];
+  
+  if (meshy?.model_urls?.glb) uploads.push({ url: meshy.model_urls.glb, path: `${base}/model.glb` });
+  if (meshy?.thumbnail_url) uploads.push({ url: meshy.thumbnail_url, path: `${base}/thumb.jpg` });
+
+  for (const item of uploads) {
+    try {
+      const exists = await admin.storage.from("meshy-assets").list(base, { 
+        search: item.path.split('/').pop() 
+      });
+      
+      if (exists.data?.some(x => x.name === item.path.split('/').pop())) continue;
+      
+      const r = await fetch(item.url);
+      if (!r.ok) continue;
+      
+      const buf = new Uint8Array(await r.arrayBuffer());
+      await admin.storage.from("meshy-assets").upload(item.path, buf, {
+        upsert: true,
+        contentType: r.headers.get("content-type") ?? "application/octet-stream"
+      });
+    } catch (error) {
+      console.error("Archive error for", item.path, error);
+    }
+  }
+
+  const { data: signed } = await admin.storage
+    .from("meshy-assets")
+    .createSignedUrl(`${base}/model.glb`, 60 * 60);
+  
+  return signed?.signedUrl;
+}
+
+async function createTask(req: Request, body: any) {
+  const supa = userClient(req);
+  const { data: { user } } = await supa.auth.getUser();
+  if (!user) return json({ error: "unauthorized" }, { status: 401 });
+  
+  const uid = user.id;
   const source: Source = body.source;
   const mode =
     source === "image" ? "image-to-3d" :
     source === "multi-image" ? "multi-image-to-3d" :
     (body.refine ? "text-to-3d:refine" : "text-to-3d:preview");
 
-  const { data: row, error: rowErr } = await supabase.from("generation_tasks").insert({
-    user_id: userId,
+  const { data: row, error: rowErr } = await admin.from("generation_tasks").insert({
+    user_id: uid,
     source,
     mode,
     prompt: source === "text" ? body.prompt ?? null : null,
@@ -60,18 +110,18 @@ async function createTask(userId: string, body: any) {
 
   if (!res.ok) {
     const err = await res.text();
-    await supabase.from("generation_tasks").update({ status: "FAILED", error: { err } }).eq("id", row.id);
+    await admin.from("generation_tasks").update({ status: "FAILED", error: { err } }).eq("id", row.id);
     return json({ error: "meshy_error", detail: err }, { status: 502 });
   }
 
   const { result: meshyId } = await res.json() as { result: string };
-  await supabase.from("generation_tasks")
+  await admin.from("generation_tasks")
     .update({ meshy_task_id: meshyId, status: "IN_PROGRESS", started_at: new Date().toISOString() })
     .eq("id", row.id);
 
-  await supabase.from("events_analytics").insert({ 
+  await admin.from("events_analytics").insert({ 
     event: "model_requested", 
-    user_id: userId, 
+    user_id: uid, 
     ts: new Date().toISOString(), 
     props: { mode, task_id: row.id } 
   });
@@ -80,7 +130,7 @@ async function createTask(userId: string, body: any) {
 }
 
 async function pollTask(id: string) {
-  const { data: task, error } = await supabase.from("generation_tasks").select("*").eq("id", id).single();
+  const { data: task, error } = await admin.from("generation_tasks").select("*").eq("id", id).single();
   if (error || !task) return json({ error: "not_found" }, { status: 404 });
 
   const base =
@@ -105,37 +155,38 @@ async function pollTask(id: string) {
     updates.model_usdz_url = meshy.model_urls.usdz ?? task.model_usdz_url;
     updates.texture_urls = meshy.texture_urls ?? task.texture_urls;
     updates.finished_at = new Date().toISOString();
-    
-    if (task.status !== "SUCCEEDED") {
-      await supabase.from("events_analytics").insert({ 
-        event: "model_succeeded", 
-        user_id: task.user_id, 
-        ts: new Date().toISOString(), 
-        props: { task_id: id } 
-      });
-    }
   }
   
-  await supabase.from("generation_tasks").update(updates).eq("id", id);
+  await admin.from("generation_tasks").update(updates).eq("id", id);
 
-  return json({ ...task, ...updates });
+  let storage_glb_signed_url: string | undefined = undefined;
+  if ((task.status !== "SUCCEEDED") && (updates as any).model_glb_url) {
+    storage_glb_signed_url = await archiveOutputs({ ...task, ...updates }, meshy);
+    
+    await admin.from("events_analytics").insert({ 
+      event: "model_succeeded", 
+      user_id: task.user_id, 
+      ts: new Date().toISOString(), 
+      props: { task_id: id } 
+    });
+  }
+
+  return json({ ...task, ...updates, storage_glb_signed_url });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   const url = new URL(req.url);
-  const path = url.pathname;
+  const path = url.pathname.replace(/^\/meshy/, "");
   
   try {
-    if (req.method === "POST" && path.endsWith("/tasks")) {
-      const userId = req.headers.get("x-user-id") ?? "";
-      if (!userId) return json({ error: "unauthorized" }, { status: 401 });
+    if (req.method === "POST" && path === "/tasks") {
       const body = await req.json();
-      return await createTask(userId, body);
+      return await createTask(req, body);
     }
     
-    const match = path.match(/\/tasks\/([0-9a-f-]+)$/i);
+    const match = path.match(/^\/tasks\/([0-9a-f-]+)$/i);
     if (req.method === "GET" && match) {
       return await pollTask(match[1]);
     }

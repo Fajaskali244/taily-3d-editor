@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { supabase } from '@/integrations/supabase/client'
-import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 
 export default function UploadDropzone({ 
@@ -33,10 +32,23 @@ export default function UploadDropzone({
       return
     }
 
+    // Must be signed in for secure RLS policies
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to upload images',
+        variant: 'destructive'
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
-      const path = `user/${Date.now()}_${file.name}`
+      const uid = user.id
+      const path = `${uid}/${Date.now()}_${file.name}`
+      
       const { error: uploadError } = await supabase.storage
         .from('user-uploads')
         .upload(path, file, { upsert: true })
