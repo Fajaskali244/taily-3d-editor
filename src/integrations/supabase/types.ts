@@ -220,6 +220,80 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_tasks: {
+        Row: {
+          created_at: string | null
+          design_id: string | null
+          error: Json | null
+          finished_at: string | null
+          id: string
+          input_image_urls: string[] | null
+          meshy_task_id: string | null
+          mode: string
+          model_fbx_url: string | null
+          model_glb_url: string | null
+          model_usdz_url: string | null
+          progress: number | null
+          prompt: string | null
+          source: Database["public"]["Enums"]["generation_source"]
+          started_at: string | null
+          status: Database["public"]["Enums"]["generation_status"]
+          texture_urls: Json | null
+          thumbnail_url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          design_id?: string | null
+          error?: Json | null
+          finished_at?: string | null
+          id?: string
+          input_image_urls?: string[] | null
+          meshy_task_id?: string | null
+          mode: string
+          model_fbx_url?: string | null
+          model_glb_url?: string | null
+          model_usdz_url?: string | null
+          progress?: number | null
+          prompt?: string | null
+          source: Database["public"]["Enums"]["generation_source"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["generation_status"]
+          texture_urls?: Json | null
+          thumbnail_url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          design_id?: string | null
+          error?: Json | null
+          finished_at?: string | null
+          id?: string
+          input_image_urls?: string[] | null
+          meshy_task_id?: string | null
+          mode?: string
+          model_fbx_url?: string | null
+          model_glb_url?: string | null
+          model_usdz_url?: string | null
+          progress?: number | null
+          prompt?: string | null
+          source?: Database["public"]["Enums"]["generation_source"]
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["generation_status"]
+          texture_urls?: Json | null
+          thumbnail_url?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generation_tasks_design_id_fkey"
+            columns: ["design_id"]
+            isOneToOne: false
+            referencedRelation: "designs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string
@@ -617,6 +691,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_reference_designs: {
@@ -658,7 +753,7 @@ export type Database = {
     }
     Functions: {
       get_catalog_items: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           glb_path: string
@@ -673,9 +768,18 @@ export type Database = {
           updated_at: string
         }[]
       }
+      is_admin: { Args: { uid: string }; Returns: boolean }
     }
     Enums: {
+      app_role: "admin" | "user"
       catalog_item_kind: "keyring" | "bead" | "charm"
+      generation_source: "image" | "text" | "multi-image"
+      generation_status:
+        | "PENDING"
+        | "IN_PROGRESS"
+        | "SUCCEEDED"
+        | "FAILED"
+        | "DELETED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -803,7 +907,16 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       catalog_item_kind: ["keyring", "bead", "charm"],
+      generation_source: ["image", "text", "multi-image"],
+      generation_status: [
+        "PENDING",
+        "IN_PROGRESS",
+        "SUCCEEDED",
+        "FAILED",
+        "DELETED",
+      ],
     },
   },
 } as const
