@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 import MeshyModelPreview from '../components/MeshyModelPreview'
 import { GenerationProgress } from '../components/GenerationProgress'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
+import { EDGE_FN_BASE } from '../config'
 
 interface Task {
   id: string
@@ -17,13 +19,14 @@ export default function Review() {
   const { taskId } = useParams()
   const nav = useNavigate()
   const { toast } = useToast()
+  const { user } = useAuth()
   const [task, setTask] = useState<Task | null>(null)
   const [approving, setApproving] = useState(false)
 
   useEffect(() => {
     const pollTask = async () => {
       try {
-        const res = await fetch(`http://localhost:8787/api/meshy/tasks/${taskId}`)
+        const res = await fetch(`${EDGE_FN_BASE}/tasks/${taskId}`)
         if (res.ok) {
           const data = await res.json()
           setTask(data)
