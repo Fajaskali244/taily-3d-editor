@@ -6,7 +6,6 @@ import { GenerationProgress } from '../components/GenerationProgress'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
-import { EDGE_FN_BASE } from '../config'
 
 interface Task {
   id: string

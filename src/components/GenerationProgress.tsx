@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/integrations/supabase/client'
-import { EDGE_FN_BASE } from '../config'
 import { Progress } from '@/components/ui/progress'
+import { fetchTask } from '@/lib/genTasks'
 
 interface GenerationTask {
   id: string
@@ -26,27 +25,15 @@ export function GenerationProgress({
 
     const pollTask = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json'
+        const data = await fetchTask(taskId)
+        setTask(data)
+        
+        if (data.storage_glb_signed_url && onSignedGlb) {
+          onSignedGlb(data.storage_glb_signed_url)
         }
         
-        if (session?.access_token) {
-          headers['Authorization'] = `Bearer ${session.access_token}`
-        }
-
-        const res = await fetch(`${EDGE_FN_BASE}/tasks/${taskId}`, { headers })
-        if (res.ok) {
-          const data = await res.json()
-          setTask(data)
-          
-          if (data.storage_glb_signed_url && onSignedGlb) {
-            onSignedGlb(data.storage_glb_signed_url)
-          }
-          
-          if (['SUCCEEDED', 'FAILED', 'DELETED'].includes(data.status)) {
-            clearInterval(interval)
-          }
+        if (['SUCCEEDED', 'FAILED', 'DELETED'].includes(data.status)) {
+          clearInterval(interval)
         }
       } catch (error) {
         console.error('Failed to poll task:', error)
