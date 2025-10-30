@@ -6,11 +6,6 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const WEBHOOK_SECRET = Deno.env.get("MESHY_WEBHOOK_SECRET");
 const SIG_HEADER = "x-meshy-signature";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
 function hexToBytes(hex: string): Uint8Array {
   const s = hex.trim().toLowerCase().replace(/^0x/, "");
   if (s.length % 2) throw new Error("Invalid hex string");
@@ -62,40 +57,28 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
 });
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  if (req.method === "GET" || req.method === "HEAD") {
-    // Meshy may probe the endpoint; return OK without signature
-    return new Response("ok", { status: 200, headers: corsHeaders });
-  }
-
-  if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
-  }
-
-  console.log("[meshy-webhook] received POST");
+  console.log("Webhook received:", req.method, req.url);
 
   const raw = new Uint8Array(await req.arrayBuffer());
 
   if (!(await verifySignature(req, raw))) {
-    console.error("[meshy-webhook] signature verification failed");
-    return new Response("unauthorized", { status: 401, headers: corsHeaders });
+    console.error("Signature verification failed");
+    return new Response("Unauthorized", { status: 401 });
   }
 
   let payload: any;
   try {
     payload = JSON.parse(new TextDecoder().decode(raw));
-  } catch {
-    console.error("[meshy-webhook] invalid json");
-    return new Response("invalid json", { status: 400, headers: corsHeaders });
+    console.log("Webhook payload:", payload);
+  } catch (e) {
+    console.error("Invalid JSON:", e);
+    return new Response("Invalid JSON", { status: 400 });
   }
 
   const meshyId: string | undefined = payload.task_id ?? payload.id;
   if (!meshyId) {
-    console.error("[meshy-webhook] missing task id");
-    return new Response("missing task id", { status: 400, headers: corsHeaders });
+    console.error("Missing task_id in payload");
+    return new Response("Missing task_id", { status: 400 });
   }
 
   const terminal = payload.status === "SUCCEEDED" || payload.status === "FAILED";
@@ -107,8 +90,13 @@ serve(async (req) => {
     model_fbx_url: payload.model_urls?.fbx ?? payload.model_fbx_url ?? null,
     model_usdz_url: payload.model_urls?.usdz ?? payload.model_usdz_url ?? null,
     error: payload.error ?? null,
-    finished_at: terminal ? new Date().toISOString() : null,
   };
+
+  if (terminal) {
+    update.finished_at = new Date().toISOString();
+  }
+
+  console.log("Updating task:", meshyId, update);
 
   const { error } = await supabase
     .from("generation_tasks")
@@ -116,16 +104,16 @@ serve(async (req) => {
     .eq("meshy_task_id", meshyId);
 
   if (error) {
-    console.error("[meshy-webhook] update error", error.message);
-    return new Response(error.message, { status: 500, headers: corsHeaders });
+    console.error("Database update failed:", error);
+    return new Response(error.message, { status: 500 });
   }
 
-  console.log("[meshy-webhook] updated", { meshy_task_id: meshyId, status: update.status });
-
+  // Log analytics event
   await supabase.from("events_analytics").insert({
     event: "meshy_webhook_received",
     props: { meshy_task_id: meshyId, status: update.status }
   }).catch((e) => console.error("Analytics insert failed:", e));
 
-  return new Response("ok", { status: 200, headers: corsHeaders });
+  console.log("Webhook processed successfully");
+  return new Response("OK", { status: 200 });
 });

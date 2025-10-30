@@ -6,6 +6,7 @@ import { GenerationProgress } from '../components/GenerationProgress'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
+import { EDGE_FN_BASE } from '../config'
 
 interface Task {
   id: string
@@ -15,29 +16,13 @@ interface Task {
 }
 
 export default function Review() {
-  const params = useParams()
+  const { taskId } = useParams()
   const nav = useNavigate()
   const { toast } = useToast()
   const { user } = useAuth()
   const [task, setTask] = useState<Task | null>(null)
   const [approving, setApproving] = useState(false)
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined)
-
-  // Get taskId from route params
-  const taskId = params.taskId || null
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-  
-  // Show error if invalid task ID
-  useEffect(() => {
-    if (taskId && !UUID_RE.test(taskId)) {
-      toast({
-        title: 'Invalid task ID',
-        description: 'The task ID in the URL is not valid.',
-        variant: 'destructive'
-      })
-      nav('/create')
-    }
-  }, [taskId, toast, nav])
 
   async function handleApprove() {
     if (!task?.model_glb_url) return
@@ -99,7 +84,7 @@ export default function Review() {
           <div className="space-y-4">
             <div className="border rounded-lg p-4">
               <h2 className="font-semibold mb-4">Generation Progress</h2>
-              {taskId && UUID_RE.test(taskId) && (
+              {taskId && (
                 <GenerationProgress 
                   taskId={taskId} 
                   onSignedGlb={(url) => setGlbUrl(url)}
