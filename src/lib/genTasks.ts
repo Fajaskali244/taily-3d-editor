@@ -32,7 +32,7 @@ export async function createMeshyTask(
   }
   
   const res = await fetch(
-    `/functions/v1/meshy/tasks`,
+    `/functions/v1/meshy-create`,
     {
       method: "POST",
       headers: {
@@ -63,7 +63,7 @@ export async function fetchTask(id: string): Promise<GenerationTask> {
   const { data: { session } } = await supabase.auth.getSession();
   
   const res = await fetch(
-    `/functions/v1/meshy/tasks/${encodeURIComponent(id)}`,
+    `/functions/v1/meshy-status?id=${encodeURIComponent(id)}`,
     {
       headers: {
         Authorization: `Bearer ${session?.access_token ?? ""}`,
