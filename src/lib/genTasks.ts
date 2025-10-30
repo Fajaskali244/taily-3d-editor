@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const PROJECT_REF = "npvkyiujvxyrrqdyrhas";
+
 
 export interface GenerationTask {
   id: string;
@@ -32,7 +32,7 @@ export async function createMeshyTask(
   }
   
   const res = await fetch(
-    `https://${PROJECT_REF}.supabase.co/functions/v1/meshy/tasks`,
+    `/functions/v1/meshy/tasks`,
     {
       method: "POST",
       headers: {
@@ -61,10 +61,9 @@ export async function fetchTask(id: string): Promise<GenerationTask> {
     throw new Error("Invalid task id");
   }
   const { data: { session } } = await supabase.auth.getSession();
-  const projectRef = "npvkyiujvxyrrqdyrhas";
   
   const res = await fetch(
-    `https://${projectRef}.supabase.co/functions/v1/meshy-status?id=${encodeURIComponent(id)}`,
+    `/functions/v1/meshy/tasks/${encodeURIComponent(id)}`,
     {
       headers: {
         Authorization: `Bearer ${session?.access_token ?? ""}`,

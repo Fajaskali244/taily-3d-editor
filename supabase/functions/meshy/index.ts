@@ -66,12 +66,21 @@ async function archiveOutputs(task: any, meshy: any) {
 }
 
 async function createTask(req: Request, body: any) {
+  console.log("[meshy-create] start", { hasSource: !!body.source });
+  
   const supa = userClient(req);
   const { data: { user } } = await supa.auth.getUser();
   if (!user) return json({ error: "unauthorized" }, { status: 401 });
   
   const uid = user.id;
   const source: Source = body.source;
+  
+  console.log("[meshy-create] payload ready", { 
+    hasImageUrl: !!body.imageUrl, 
+    hasPrompt: !!body.prompt,
+    hasImageUrls: !!body.imageUrls,
+    source 
+  });
   const mode =
     source === "image" ? "image-to-3d" :
     source === "multi-image" ? "multi-image-to-3d" :
@@ -110,6 +119,7 @@ async function createTask(req: Request, body: any) {
 
   if (!res.ok) {
     const err = await res.text();
+    console.error("[meshy-create] meshy error", res.status, err);
     await admin.from("generation_tasks").update({ status: "FAILED", error: { err } }).eq("id", row.id);
     return json({ error: "meshy_error", detail: err }, { status: 502 });
   }
@@ -118,6 +128,8 @@ async function createTask(req: Request, body: any) {
   await admin.from("generation_tasks")
     .update({ meshy_task_id: meshyId, status: "IN_PROGRESS", started_at: new Date().toISOString() })
     .eq("id", row.id);
+
+  console.log("[meshy-create] accepted", { internalId: row.id, meshyTaskId: meshyId });
 
   await admin.from("events_analytics").insert({ 
     event: "model_requested", 
