@@ -1,1 +1,1 @@
-export const EDGE_FN_BASE = import.meta.env.VITE_EDGE_FN_BASE || `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meshy`;
+// Edge functions are called via supabase.functions.invoke() - no hardcoded URLs needed

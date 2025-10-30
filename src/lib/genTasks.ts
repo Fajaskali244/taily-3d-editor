@@ -1,7 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-
-
 export interface GenerationTask {
   id: string;
   status: string;
@@ -18,8 +16,6 @@ export async function createMeshyTask(
   source: "image" | "text" | "multi-image",
   options: { imageUrl?: string; prompt?: string; imageUrls?: string[] }
 ): Promise<{ id: string; meshyId: string }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  
   console.log("[createMeshyTask] start", { source, hasImageUrl: !!options.imageUrl, hasPrompt: !!options.prompt });
   
   const body: any = { source };
@@ -31,28 +27,18 @@ export async function createMeshyTask(
     body.imageUrls = options.imageUrls;
   }
   
-  const res = await fetch(
-    `/functions/v1/meshy-create`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session?.access_token ?? ""}`,
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const { data, error } = await supabase.functions.invoke("meshy-create", {
+    body
+  });
 
-  const json = await res.json().catch(() => ({}));
+  console.log("[createMeshyTask] response", { error: error?.message, hasId: !!data?.id });
   
-  console.log("[createMeshyTask] response", { ok: res.ok, status: res.status, hasId: !!json?.id });
-  
-  if (!res.ok || !json?.id) {
-    const errorMsg = json?.error ?? json?.detail ?? `create failed ${res.status}`;
+  if (error || !data?.id) {
+    const errorMsg = error?.message ?? `create failed (no id)`;
     throw new Error(errorMsg);
   }
   
-  return { id: json.id, meshyId: json.meshyId };
+  return { id: data.id, meshyId: data.meshyTaskId };
 }
 
 export async function fetchTask(id: string): Promise<GenerationTask> {
@@ -60,21 +46,15 @@ export async function fetchTask(id: string): Promise<GenerationTask> {
   if (!UUID_RE.test(id)) {
     throw new Error("Invalid task id");
   }
-  const { data: { session } } = await supabase.auth.getSession();
   
-  const res = await fetch(
-    `/functions/v1/meshy-status?id=${encodeURIComponent(id)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${session?.access_token ?? ""}`,
-      },
-    }
-  );
+  const { data, error } = await supabase.functions.invoke("meshy-status", {
+    method: "GET",
+    body: { id }
+  });
 
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Status fetch failed: ${res.status} - ${text}`);
+  if (error) {
+    throw new Error(`Status fetch failed: ${error.message}`);
   }
 
-  return res.json();
+  return data as GenerationTask;
 }
