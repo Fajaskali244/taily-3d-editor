@@ -155,12 +155,16 @@ serve(async (req) => {
 
   console.log("[meshy-create] accepted", { internalId: taskRow.id, meshyTaskId });
 
-  await supabase.from("events_analytics").insert({ 
+  const { error: analyticsError } = await supabase.from("events_analytics").insert({ 
     event: "model_requested", 
     user_id: user.id, 
     ts: new Date().toISOString(), 
     props: { mode, task_id: taskRow.id } 
-  }).catch((e) => console.error("Analytics insert failed:", e));
+  });
+  
+  if (analyticsError) {
+    console.error("Analytics insert failed:", analyticsError);
+  }
 
   return new Response(JSON.stringify({ id: taskRow.id, meshyTaskId }), { 
     headers: { ...corsHeaders, "Content-Type": "application/json" } 
