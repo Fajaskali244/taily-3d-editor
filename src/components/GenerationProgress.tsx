@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react'
-import { useGenerationTask } from '@/hooks/useGenerationTask'
+import { supabase } from '@/integrations/supabase/client'
+import { EDGE_FN_BASE } from '../config'
 import { Progress } from '@/components/ui/progress'
+
+interface GenerationTask {
+  id: string
+  status: string
+  progress?: number
+  thumbnail_url?: string
+  storage_glb_signed_url?: string
+  error?: any
+}
 
 export function GenerationProgress({ 
   taskId, 
@@ -9,16 +19,46 @@ export function GenerationProgress({
   taskId: string
   onSignedGlb?: (url?: string) => void 
 }) {
-  const { task, isLoading } = useGenerationTask(taskId)
+  const [task, setTask] = useState<GenerationTask | null>(null)
 
-  // Notify parent when GLB is ready
   useEffect(() => {
-    if (task?.model_glb_url && onSignedGlb) {
-      onSignedGlb(task.model_glb_url)
-    }
-  }, [task?.model_glb_url, onSignedGlb])
+    let interval: NodeJS.Timeout
 
-  if (isLoading || !task) {
+    const pollTask = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json'
+        }
+        
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`
+        }
+
+        const res = await fetch(`${EDGE_FN_BASE}/tasks/${taskId}`, { headers })
+        if (res.ok) {
+          const data = await res.json()
+          setTask(data)
+          
+          if (data.storage_glb_signed_url && onSignedGlb) {
+            onSignedGlb(data.storage_glb_signed_url)
+          }
+          
+          if (['SUCCEEDED', 'FAILED', 'DELETED'].includes(data.status)) {
+            clearInterval(interval)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll task:', error)
+      }
+    }
+
+    pollTask()
+    interval = setInterval(pollTask, 2500)
+    return () => clearInterval(interval)
+  }, [taskId, onSignedGlb])
+
+  if (!task) {
     return (
       <div className="flex items-center gap-3">
         <div className="w-20 h-20 rounded bg-muted animate-pulse" />
