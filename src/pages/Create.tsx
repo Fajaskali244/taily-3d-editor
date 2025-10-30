@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/integrations/supabase/client'
 import UploadDropzone from '../components/UploadDropzone'
 import TextPromptForm from '../components/TextPromptForm'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { EDGE_FN_BASE } from '../config'
+import { createMeshyTask } from '@/lib/genTasks'
 
 export default function Create() {
   const nav = useNavigate()
@@ -18,7 +16,7 @@ export default function Create() {
   
   const tab = params.get('tab') ?? 'image'
 
-  async function createTask(body: any) {
+  async function handleImageGenerate(imageUrl: string) {
     if (!user) {
       toast({
         title: 'Authentication required',
@@ -31,38 +29,54 @@ export default function Create() {
 
     setLoading(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('No valid session')
-      }
-
-      const res = await fetch(`${EDGE_FN_BASE}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ ...body, userId: user.id })
-      })
-
-      const data = await res.json()
+      const { id } = await createMeshyTask('image', { imageUrl })
       
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create task')
-      }
-
       toast({
         title: 'Generation started',
         description: 'Your 3D model is being created...'
       })
       
-      // Navigate with the actual task ID returned from the function
-      nav(`/review/${data.id}`)
+      nav(`/review/${id}`)
     } catch (error) {
-      console.error('Task creation error:', error)
+      console.error('Generation error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
       toast({
         title: 'Generation failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: errorMsg.includes('not_found') ? 'Image URL not accessible' : errorMsg,
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleTextGenerate(prompt: string) {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to generate 3D models',
+        variant: 'destructive'
+      })
+      nav('/auth')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { id } = await createMeshyTask('text', { prompt })
+      
+      toast({
+        title: 'Generation started',
+        description: 'Your 3D model is being created...'
+      })
+      
+      nav(`/review/${id}`)
+    } catch (error) {
+      console.error('Generation error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      toast({
+        title: 'Generation failed',
+        description: errorMsg,
         variant: 'destructive'
       })
     } finally {
@@ -88,7 +102,7 @@ export default function Create() {
 
           <TabsContent value="image" className="space-y-4 mt-6">
             <UploadDropzone 
-              onUploaded={url => createTask({ source: 'image', imageUrl: url })} 
+              onUploaded={handleImageGenerate} 
             />
             <p className="text-sm text-muted-foreground">
               Upload an image and we'll generate a 3D model from it automatically.
@@ -97,7 +111,7 @@ export default function Create() {
 
           <TabsContent value="text" className="space-y-4 mt-6">
             <TextPromptForm 
-              onSubmit={prompt => createTask({ source: 'text', prompt })} 
+              onSubmit={handleTextGenerate} 
             />
             <p className="text-sm text-muted-foreground">
               Describe what you want to create and AI will generate a 3D model.
