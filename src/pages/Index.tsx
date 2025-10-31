@@ -121,11 +121,8 @@ const Index = () => {
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" />
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl">
+            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Own your Memory
-              <span className="block bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                Custom Keychain
-              </span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl" style={{ contentVisibility: 'auto' }}>
               Create personalized keychains and accessories in minutes. From nameplates to zodiac charms, 
