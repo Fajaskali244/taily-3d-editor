@@ -2,22 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Taily Design System - Beautiful gradients and colors for 3D keychain platform */
+/* Lumo Brand System - Purple to Blue gradient palette */
 
 :root {
-  --bg-start: #0b0824;   /* deep indigo */
-  --bg-mid:   #2a1861;   /* purple */
-  --bg-end:   #1b4ab9;   /* blue */
+  /* Lumo brand core */
+  --brand-bg:       #0b0d17;      /* deep black/indigo */
+  --brand-surface:  #11152a;
+  --brand-purple:   #7b5cfa;      /* Lumo left stop */
+  --brand-blue:     #4f7dff;      /* Lumo right stop */
+  --brand-accent:   #9aa7ff;      /* hover/outline */
+  --brand-text:     #ffffff;
+  --brand-muted:    #cbd5e1;
+
+  /* Component roles */
+  --color-primary:  var(--brand-purple);
+  --color-primary-2:var(--brand-blue);
+  --color-bg:       var(--brand-bg);
+  --color-surface:  var(--brand-surface);
+  --color-text:     var(--brand-text);
+  --color-muted:    color-mix(in oklab, var(--brand-text) 70%, transparent);
 }
 
 .page-gradient {
-  /* subtle radial glow + main linear gradient */
   background:
-    radial-gradient(1100px 600px at 10% -10%, rgba(255,255,255,0.06), transparent),
-    linear-gradient(180deg, var(--bg-start) 0%, var(--bg-mid) 45%, var(--bg-end) 100%);
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
+    radial-gradient(1000px 600px at 10% -10%, rgba(255,255,255,0.05), transparent),
+    linear-gradient(180deg, #0b0d17 0%, #16193a 40%, #1f2f6e 70%, #223f88 100%);
+  color: var(--color-text);
 }
+
+/* Generic card & button helpers */
+.card-surface {
+  background: color-mix(in oklab, var(--color-surface) 85%, transparent);
+  border: 1px solid color-mix(in oklab, white 12%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-2));
+  color: #fff;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
 
 @layer base {
   :root {
@@ -34,8 +62,8 @@
     --masculine-gradient-primary: linear-gradient(135deg, hsl(var(--masculine-gradient-start)), hsl(var(--masculine-gradient-end)));
     --masculine-gradient-secondary: linear-gradient(180deg, hsl(var(--masculine-gradient-start) / 0.1), hsl(var(--masculine-gradient-end) / 0.1));
     
-    --background: 0 0% 5%; /* Dark background like LUMO */
-    --foreground: 0 0% 95%;
+    --background: 0 0% 5%;
+    --foreground: 0 0% 98%;
 
     --card: 0 0% 8%;
     --card-foreground: 0 0% 95%;

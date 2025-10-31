@@ -6,9 +6,10 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
-import { User, Palette, LogOut, Home, Sparkles } from 'lucide-react'
+import { User, Palette, LogOut, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
+import lumoLogo from '@/assets/lumo-logo.png'
 
 const Navigation = () => {
   const { user, signOut } = useAuth()
@@ -36,15 +37,12 @@ const Navigation = () => {
     <nav className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-b z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={() => navigate('/')}
-            className="font-semibold"
+            className="flex items-center gap-2"
           >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
+            <img src={lumoLogo} alt="Lumo" className="h-6" />
+          </button>
           <Button
             variant="ghost"
             size="sm"

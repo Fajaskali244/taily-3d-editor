@@ -191,13 +191,13 @@ const Index = () => {
                   </p>
                 </div>
               </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
+              <div className="card-surface rounded-xl2 p-6 shadow-brand">
                 <div className="text-center">
                   <Star className="mx-auto h-12 w-12 text-white" />
-                  <h3 className="mt-4 text-xl font-semibold text-white">Trusted by Thousands</h3>
+                  <h3 className="font-heading mt-4 text-xl font-semibold text-white">Trusted by Thousands</h3>
                 </div>
                 <div className="mt-4">
-                  <p className="text-center text-white/70">
+                  <p className="font-body text-center text-white/80">
                     Join thousands of satisfied customers who love their custom keychains.
                   </p>
                 </div>
@@ -208,17 +208,17 @@ const Index = () => {
       </div>
 
       {/* Popular Products */}
-      <section className="py-24 bg-card">
+      <section className="py-24 bg-background">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            <h2 className="font-heading text-3xl font-bold tracking-tight sm:text-4xl">
               Popular Designs
             </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
+            <p className="font-body mt-4 text-lg text-muted-foreground">
               Get inspired by our most popular keychain designs
             </p>
           </div>
-          
+
           {loading ? (
             <div className="mt-16 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {[...Array(4)].map((_, i) => (
