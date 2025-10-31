@@ -6,9 +6,9 @@
 
 @layer base {
   :root {
-    /* Core gradient colors for Taily brand - Feminine (default) */
-    --gradient-start: 322 100% 85%; /* Pink */
-    --gradient-end: 204 100% 75%;   /* Blue */
+    /* LUMO brand colors - Purple to Blue gradient */
+    --gradient-start: 260 80% 60%; /* Purple */
+    --gradient-end: 200 90% 65%;   /* Light Blue */
     --gradient-primary: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
     --gradient-secondary: linear-gradient(180deg, hsl(var(--gradient-start) / 0.1), hsl(var(--gradient-end) / 0.1));
     
@@ -19,19 +19,19 @@
     --masculine-gradient-primary: linear-gradient(135deg, hsl(var(--masculine-gradient-start)), hsl(var(--masculine-gradient-end)));
     --masculine-gradient-secondary: linear-gradient(180deg, hsl(var(--masculine-gradient-start) / 0.1), hsl(var(--masculine-gradient-end) / 0.1));
     
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 5%; /* Dark background like LUMO */
+    --foreground: 0 0% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 322 100% 65%; /* Pink theme */
+    --primary: 260 80% 60%; /* LUMO Purple */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 204 100% 65%; /* Blue theme */
+    --secondary: 200 90% 65%; /* LUMO Blue */
     --secondary-foreground: 0 0% 100%;
     
     /* Masculine primary colors */
@@ -40,18 +40,18 @@
     --masculine-secondary: 220 20% 25%; /* Dark charcoal */
     --masculine-secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 322 100% 85%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 200 90% 65%;
+    --accent-foreground: 0 0% 5%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 322 100% 65%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 260 80% 60%;
 
     --radius: 0.5rem;
 
