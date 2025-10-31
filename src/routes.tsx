@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
+import { createBrowserRouter, Navigate, redirect } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
 // Eager-load critical pages
@@ -37,9 +37,7 @@ export const router = createBrowserRouter([
         loader: async ({ params }) => {
           const id = (params.taskId ?? "").replace(/^:/, "");
           if (!UUID_RE.test(id)) {
-            // Track legacy redirect
-            console.warn("Invalid UUID in review route:", id);
-            throw new Response("Invalid task ID", { status: 404 });
+            throw redirect("/create");
           }
           return null;
         },

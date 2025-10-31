@@ -15,8 +15,11 @@ interface Task {
   user_id: string
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function Review() {
-  const { taskId } = useParams()
+  const { taskId: raw } = useParams()
+  const normalizedTaskId = (raw ?? '').replace(/^:/, '')
   const nav = useNavigate()
   const { toast } = useToast()
   const { user } = useAuth()
@@ -24,6 +27,20 @@ export default function Review() {
   const [approving, setApproving] = useState(false)
   const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined)
 
+  if (!UUID_RE.test(normalizedTaskId)) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-5xl mx-auto p-6 pt-24">
+          <div className="border rounded-lg p-6 text-center">
+            <h1 className="text-2xl font-bold">Invalid task ID</h1>
+            <p className="text-muted-foreground mt-2">Please start a new generation.</p>
+            <Button className="mt-4" onClick={() => nav('/create')}>Back to Create</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
   async function handleApprove() {
     if (!task?.model_glb_url) return
 
@@ -85,9 +102,9 @@ export default function Review() {
           <div className="space-y-4">
             <div className="border rounded-lg p-4">
               <h2 className="font-semibold mb-4">Generation Progress</h2>
-              {taskId && (
+              {normalizedTaskId && (
                 <GenerationProgress 
-                  taskId={taskId} 
+                  taskId={normalizedTaskId} 
                   onSignedGlb={(url) => setGlbUrl(url)}
                 />
               )}
