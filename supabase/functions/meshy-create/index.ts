@@ -19,7 +19,7 @@ function j(body: unknown, status = 200) {
 }
 
 // ===== Configurable min size =====
-const MIN_IMAGE_BYTES = Number(Deno.env.get("MIN_IMAGE_BYTES") ?? 120_000); // ~120KB
+const MIN_IMAGE_BYTES = 200 * 1024; // 200 KB
 
 function estimateDataUriBytes(uri: string): number | null {
   if (!uri.startsWith("data:")) return null;
@@ -30,15 +30,33 @@ function estimateDataUriBytes(uri: string): number | null {
   return Math.floor((cleaned.length * 3) / 4); // base64 4 chars -> 3 bytes
 }
 
+// Robust size probe: HEAD -> Range fallback -> allow unknown
 async function probeBytes(url: string): Promise<number | null> {
   const est = estimateDataUriBytes(url);
   if (est !== null) return est;
+  
   try {
     const head = await fetch(url, { method: "HEAD" });
-    const len = head.headers.get("content-length");
-    if (len && /^\d+$/.test(len)) return Number(len);
-  } catch { /* best-effort only */ }
-  return null; // unknown
+    if (head.ok) {
+      const cl = head.headers.get("content-length");
+      if (cl && !Number.isNaN(+cl)) return +cl;
+    }
+    
+    // Try Range fallback
+    const range = await fetch(url, { headers: { Range: "bytes=0-0" } });
+    if (range.ok) {
+      const cr = range.headers.get("content-range"); // "bytes 0-0/123456"
+      if (cr) {
+        const total = cr.split("/").pop();
+        if (total && !Number.isNaN(+total)) return +total;
+      }
+      const cl2 = range.headers.get("content-length");
+      if (cl2 && !Number.isNaN(+cl2)) return +cl2;
+    }
+    return null; // unknown size: don't block
+  } catch {
+    return null;
+  }
 }
 
 const PRESETS = {
@@ -88,29 +106,44 @@ serve(async (req) => {
       return j({ error: "missing_image", details: "Provide imageUrl or imageUrls[1..5]" }, 400);
     }
 
-    // Basic hygiene: block obviously tiny images with configurable threshold
-    const allowSmall: boolean = !!body.forceSmall;
+    // Measure and filter each image
+    type Measured = { url: string; bytes: number | null };
+    const measured: Measured[] = [];
+    for (const u of urls) {
+      measured.push({ url: u, bytes: await probeBytes(u) });
+    }
 
-    let tooSmall = false;
-    let gotBytes: number | null = null;
+    const keep = measured.filter(m => m.bytes === null || m.bytes >= MIN_IMAGE_BYTES).map(m => m.url);
+    const allKnown = measured.every(m => m.bytes !== null);
+    const allTooSmall = allKnown && measured.every(m => (m.bytes ?? 0) < MIN_IMAGE_BYTES);
 
-    for (const url of urls) {
-      const bytes = await probeBytes(url);
-      if (bytes !== null) {
-        gotBytes = bytes;
-        if (bytes < MIN_IMAGE_BYTES) { tooSmall = true; break; }
+    if (!body.forceSmall) {
+      if (allTooSmall) {
+        return j({
+          error: "image_too_small",
+          details: `All images are < ${Math.round(MIN_IMAGE_BYTES/1024)}KB`,
+          samples: measured.slice(0, 3),
+          tip: "Upload original photos (≥800px, good lighting). Avoid compressed screenshots or chat re-uploads."
+        }, 400);
       }
     }
 
-    // Only block when we are sure the image is small, and no override provided
-    if (tooSmall && !allowSmall) {
-      return j({
-        error: "image_too_small",
-        min_bytes: MIN_IMAGE_BYTES,
-        got_bytes: gotBytes,
-        tip: "Upload original photos (≥800px, good lighting). Avoid compressed screenshots or chat re-uploads."
-      }, 400);
+    // Use kept images, or if nothing survived but we had measurements, use largest
+    let usable = keep.length ? keep : (
+      measured
+        .filter(m => m.bytes !== null)
+        .sort((a,b) => (b.bytes! - a.bytes!))
+        .slice(0,1)
+        .map(m => m.url)
+    );
+
+    // If forceSmall is set, use all images
+    if (body.forceSmall) {
+      usable = measured.map(m => m.url);
     }
+
+    console.log("[meshy-create] measured", measured);
+    console.log("[meshy-create] usable", usable);
 
     const overrides = {
       target_polycount: body.polycount ?? preset.target_polycount,
@@ -121,7 +154,7 @@ serve(async (req) => {
     };
 
     // Insert tracking row
-    const isMulti = urls.length > 1;
+    const isMulti = usable.length > 1;
     
     const { data: taskRow, error: insErr } = await supabaseAdmin
       .from("generation_tasks")
@@ -130,7 +163,7 @@ serve(async (req) => {
         source: isMulti ? "multi-image" : "image",
         mode: isMulti ? "multi-image-to-3d" : "image-to-3d",
         prompt: overrides.texture_prompt ?? null,
-        input_image_urls: urls,
+        input_image_urls: usable,
         status: "PENDING",
         progress: 0,
         created_at: new Date().toISOString(),
@@ -159,11 +192,11 @@ serve(async (req) => {
       should_texture: overrides.should_texture,
       enable_pbr: overrides.enable_pbr,
       texture_prompt: overrides.texture_prompt ?? undefined,
-      ...(isMulti ? { image_urls: urls } : { image_url: urls[0] })
+      ...(isMulti ? { image_urls: usable } : { image_url: usable[0] })
     };
 
     console.log("[meshy-create] calling Meshy", {
-      views: urls.length,
+      views: usable.length,
       endpoint,
       payloadKey: isMulti ? "image_urls" : "image_url",
       poly: overrides.target_polycount,

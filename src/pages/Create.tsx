@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 
 const MAX_FILES = 8;
+const MIN_FILE_SIZE = 200 * 1024; // 200 KB
 
-// helper: upload files to private bucket and create short signed URLs
-async function toSignedUrls(files: File[], onWarning: (msg: string) => void): Promise<string[]> {
+// helper: upload files to private bucket and create signed URLs (30min expiry for probing)
+async function toSignedUrls(files: File[]): Promise<string[]> {
   const urls: string[] = [];
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("auth required");
@@ -22,7 +23,7 @@ async function toSignedUrls(files: File[], onWarning: (msg: string) => void): Pr
     const path = `${user.id}/${Date.now()}-${f.name}`;
     const up = await supabase.storage.from("user-uploads").upload(path, f, { upsert: false });
     if (up.error) throw up.error;
-    const signed = await supabase.storage.from("user-uploads").createSignedUrl(path, 3600);
+    const signed = await supabase.storage.from("user-uploads").createSignedUrl(path, 1800); // 30 min for probing
     if (signed.error) throw signed.error;
     urls.push(signed.data.signedUrl);
   }
@@ -57,6 +58,14 @@ export default function Create() {
         toast({
           title: 'Invalid file type',
           description: `"${f.name}" is not an image file`,
+          variant: 'destructive'
+        });
+        continue;
+      }
+      if (!forceSmall && f.size < MIN_FILE_SIZE) {
+        toast({
+          title: 'File too small',
+          description: `"${f.name}" must be ≥ 200 KB. Enable "Force generate anyway" to override.`,
           variant: 'destructive'
         });
         continue;
@@ -101,21 +110,13 @@ export default function Create() {
     setLoading(true)
     try {
       const filesToUpload = picked.map(p => p.file);
-      const uploadedUrls = filesToUpload.length ? await toSignedUrls(filesToUpload, (msg) => {
-        toast({
-          title: 'Image quality warning',
-          description: msg,
-          variant: 'default'
-        })
-      }) : []
-      
-      const isDev = import.meta.env.DEV;
+      const uploadedUrls = filesToUpload.length ? await toSignedUrls(filesToUpload) : []
       
       // Build payload: send imageUrl for single image, imageUrls for multiple
       let payload: any = {
         texturePrompt: prompt,
         preset,
-        forceSmall: isDev && forceSmall ? true : undefined
+        forceSmall: forceSmall ? true : undefined
       };
       
       if (uploadedUrls.length > 1) {
@@ -222,7 +223,7 @@ export default function Create() {
                   <div className="text-4xl mb-2">📷</div>
                   <div className="font-medium">Choose files or drag & drop</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    PNG/JPG, max {MAX_FILES} files
+                    PNG/JPG, ≥ 200 KB each, max {MAX_FILES} files
                   </div>
                 </div>
               </div>
@@ -301,20 +302,18 @@ export default function Create() {
                 />
               </div>
 
-              {import.meta.env.DEV && (
-                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                  <input
-                    type="checkbox"
-                    id="forceSmall"
-                    checked={forceSmall}
-                    onChange={(e) => setForceSmall(e.target.checked)}
-                    className="cursor-pointer"
-                  />
-                  <Label htmlFor="forceSmall" className="cursor-pointer text-sm text-muted-foreground">
-                    Force generate anyway (dev override)
-                  </Label>
-                </div>
-              )}
+              <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                <input
+                  type="checkbox"
+                  id="forceSmall"
+                  checked={forceSmall}
+                  onChange={(e) => setForceSmall(e.target.checked)}
+                  className="cursor-pointer"
+                />
+                <Label htmlFor="forceSmall" className="cursor-pointer text-sm text-muted-foreground">
+                  Force generate anyway (bypass size checks)
+                </Label>
+              </div>
 
               <Button 
                 onClick={handleSubmit} 
