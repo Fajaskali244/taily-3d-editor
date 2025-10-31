@@ -66,13 +66,26 @@ export default function Create() {
           description: msg,
           variant: 'default'
         })
-      }) : undefined
+      }) : []
       
       const isDev = import.meta.env.DEV;
       
-      const payload = uploadedUrls?.length
-        ? { imageUrls: uploadedUrls, texturePrompt: prompt, preset, forceSmall: isDev && forceSmall ? true : undefined }
-        : { imageUrl, texturePrompt: prompt, preset, forceSmall: isDev && forceSmall ? true : undefined }
+      // Build payload: send imageUrl for single image, imageUrls for multiple
+      let payload: any = {
+        texturePrompt: prompt,
+        preset,
+        forceSmall: isDev && forceSmall ? true : undefined
+      };
+      
+      if (uploadedUrls.length > 1) {
+        payload.imageUrls = uploadedUrls;
+      } else if (uploadedUrls.length === 1) {
+        payload.imageUrl = uploadedUrls[0];
+      } else if (imageUrl.trim()) {
+        payload.imageUrl = imageUrl.trim();
+      } else {
+        throw new Error("Provide at least one image");
+      }
 
       const { id } = await createMeshyTask(payload as any)
       

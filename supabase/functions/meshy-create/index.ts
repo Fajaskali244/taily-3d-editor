@@ -79,24 +79,25 @@ serve(async (req) => {
     const presetName: "draft"|"standard"|"high" = (body.preset ?? "standard").toLowerCase();
     const preset = PRESETS[presetName] ?? PRESETS.standard;
 
-    // Accept either a single imageUrl or multiple imageUrls[]
-    const imageUrl: string | undefined = body.imageUrl ?? undefined;
-    const imageUrls: string[] | undefined = Array.isArray(body.imageUrls) ? body.imageUrls.filter(Boolean) : undefined;
-    if (!imageUrl && !(imageUrls && imageUrls.length >= 1)) {
-      return j({ error: "imageUrl or imageUrls[] required" }, 400);
+    // Normalize inputs into a single array
+    const urls: string[] = Array.isArray(body.imageUrls) && body.imageUrls.length
+      ? body.imageUrls.filter(Boolean)
+      : (body.imageUrl ? [body.imageUrl] : []);
+
+    if (urls.length === 0) {
+      return j({ error: "missing_image", details: "Provide imageUrl or imageUrls[1..5]" }, 400);
     }
 
     // Basic hygiene: block obviously tiny images with configurable threshold
-    const list = imageUrls?.length ? imageUrls : [imageUrl!];
     const allowSmall: boolean = !!body.forceSmall;
 
     let tooSmall = false;
     let gotBytes: number | null = null;
 
-    for (const url of list) {
-      const bytes = await probeBytes(url!);
+    for (const url of urls) {
+      const bytes = await probeBytes(url);
       if (bytes !== null) {
-        gotBytes = bytes; // last known
+        gotBytes = bytes;
         if (bytes < MIN_IMAGE_BYTES) { tooSmall = true; break; }
       }
     }
@@ -120,14 +121,16 @@ serve(async (req) => {
     };
 
     // Insert tracking row
+    const isMulti = urls.length > 1;
+    
     const { data: taskRow, error: insErr } = await supabaseAdmin
       .from("generation_tasks")
       .insert({
         user_id: userId,
-        source: imageUrls && imageUrls.length > 1 ? "multi-image" : "image",
-        mode: imageUrls && imageUrls.length > 1 ? "multi-image-to-3d" : "image-to-3d",
+        source: isMulti ? "multi-image" : "image",
+        mode: isMulti ? "multi-image-to-3d" : "image-to-3d",
         prompt: overrides.texture_prompt ?? null,
-        input_image_urls: list,
+        input_image_urls: urls,
         status: "PENDING",
         progress: 0,
         created_at: new Date().toISOString(),
@@ -144,20 +147,28 @@ serve(async (req) => {
       return j({ error: `db insert: ${insErr.message}` }, 500);
     }
 
-    // Build Meshy payload
-    const payload: Record<string, unknown> = {
-      ai_model: "latest",
-      ...overrides,
-    };
-    const isMulti = !!(imageUrls && imageUrls.length > 1);
-    if (isMulti) payload["image_urls"] = imageUrls;
-    else payload["image_url"] = imageUrl;
-
+    // Build Meshy payload - only include the correct key; never both
     const endpoint = isMulti
       ? "https://api.meshy.ai/openapi/v1/multi-image-to-3d"
       : "https://api.meshy.ai/openapi/v1/image-to-3d";
 
-    console.log("[meshy-create] call", { preset: presetName, endpoint, views: list.length, poly: overrides.target_polycount });
+    const payload: Record<string, unknown> = {
+      ai_model: "latest",
+      target_polycount: overrides.target_polycount,
+      should_remesh: overrides.should_remesh,
+      should_texture: overrides.should_texture,
+      enable_pbr: overrides.enable_pbr,
+      texture_prompt: overrides.texture_prompt ?? undefined,
+      ...(isMulti ? { image_urls: urls } : { image_url: urls[0] })
+    };
+
+    console.log("[meshy-create] calling Meshy", {
+      views: urls.length,
+      endpoint,
+      payloadKey: isMulti ? "image_urls" : "image_url",
+      poly: overrides.target_polycount,
+      preset: presetName
+    });
 
     const res = await fetch(endpoint, {
       method: "POST",
