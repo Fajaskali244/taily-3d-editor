@@ -125,7 +125,7 @@ const Index = () => {
               Own your Memory
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl" style={{ contentVisibility: 'auto' }}>
-              Hold the moment that holds you. Upload a photo, shape the details, and receive a LumoPrint that keeps your story close.
+              Hold the moment that holds you. Upload a photo, shape the details, and receive a 3D print that keeps your story close.
             </p>
             <div className="mt-10 flex items-center justify-center gap-4">
               <Button size="lg" className="h-12 px-8" asChild>
