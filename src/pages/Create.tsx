@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 
-const TOO_SMALL = 200_000; // minimum 200 KB per image
 const MAX_FILES = 8;
 
 // helper: upload files to private bucket and create short signed URLs
@@ -20,9 +19,6 @@ async function toSignedUrls(files: File[], onWarning: (msg: string) => void): Pr
   if (!user) throw new Error("auth required");
 
   for (const f of files) {
-    if (f.size > 0 && f.size < TOO_SMALL) {
-      onWarning(`"${f.name}" looks small (${f.size} bytes). Try the original file for better quality.`);
-    }
     const path = `${user.id}/${Date.now()}-${f.name}`;
     const up = await supabase.storage.from("user-uploads").upload(path, f, { upsert: false });
     if (up.error) throw up.error;
@@ -61,14 +57,6 @@ export default function Create() {
         toast({
           title: 'Invalid file type',
           description: `"${f.name}" is not an image file`,
-          variant: 'destructive'
-        });
-        continue;
-      }
-      if (f.size < TOO_SMALL) {
-        toast({
-          title: 'File too small',
-          description: `"${f.name}" must be ≥ 200 KB`,
           variant: 'destructive'
         });
         continue;
@@ -234,7 +222,7 @@ export default function Create() {
                   <div className="text-4xl mb-2">📷</div>
                   <div className="font-medium">Choose files or drag & drop</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    PNG/JPG, ≥ 200 KB each, max {MAX_FILES} files
+                    PNG/JPG, max {MAX_FILES} files
                   </div>
                 </div>
               </div>
