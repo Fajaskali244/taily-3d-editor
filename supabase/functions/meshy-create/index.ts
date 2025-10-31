@@ -58,18 +58,24 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return j({ error: "missing authorization" }, 401);
 
-    const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { 
-      auth: { persistSession: false },
-      global: { headers: { Authorization: authHeader } }
+    // Admin client for DB writes - do not forward user Authorization header
+    const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_KEY, { 
+      auth: { persistSession: false }
     });
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return j({ error: "unauthorized" }, 401);
+    // Extract user from incoming Bearer token without binding it to DB requests
+    const jwt = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+    let userId: string | null = null;
+    if (jwt) {
+      const { data, error } = await supabaseAdmin.auth.getUser(jwt);
+      if (error) return j({ error: `auth: ${error.message}` }, 401);
+      userId = data?.user?.id ?? null;
+    }
+    if (!userId) return j({ error: "unauthorized" }, 401);
 
     let body: any;
     try { body = await req.json(); } catch { return j({ error: "bad json" }, 400); }
 
-    const userId = user.id;
     const presetName: "draft"|"standard"|"high" = (body.preset ?? "standard").toLowerCase();
     const preset = PRESETS[presetName] ?? PRESETS.standard;
 
@@ -114,7 +120,7 @@ serve(async (req) => {
     };
 
     // Insert tracking row
-    const { data: taskRow, error: insErr } = await supabase
+    const { data: taskRow, error: insErr } = await supabaseAdmin
       .from("generation_tasks")
       .insert({
         user_id: userId,
@@ -164,7 +170,7 @@ serve(async (req) => {
 
     if (!res.ok || !json?.result) {
       console.error("[meshy-create] meshy api error:", res.status, json);
-      await supabase.from("generation_tasks")
+      await supabaseAdmin.from("generation_tasks")
         .update({ status: "FAILED", error: json, finished_at: new Date().toISOString() })
         .eq("id", taskRow.id);
       return j({ error: "meshy_call_failed", details: json }, res.status || 502);
@@ -172,7 +178,7 @@ serve(async (req) => {
 
     const meshyTaskId: string = json.result;
 
-    const { error: upErr } = await supabase.from("generation_tasks")
+    const { error: upErr } = await supabaseAdmin.from("generation_tasks")
       .update({ status: "IN_PROGRESS", meshy_task_id: meshyTaskId, started_at: new Date().toISOString() })
       .eq("id", taskRow.id);
     if (upErr) {

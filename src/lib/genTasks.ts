@@ -27,8 +27,14 @@ export async function createMeshyTask(params: {
   });
   
   if (error || !data?.id) {
-    const details = (error as any)?.context ?? (error as any)?.message ?? "meshy-create failed";
-    throw new Error(details);
+    let msg = (error as any)?.message ?? 'meshy-create failed';
+    try {
+      const body = await (error as any)?.context?.json?.();
+      if (body?.error) {
+        msg = body.tip ? `${body.error}: ${body.tip}` : String(body.error);
+      }
+    } catch {}
+    throw new Error(msg);
   }
   return data as { id: string; meshyTaskId: string };
 }
