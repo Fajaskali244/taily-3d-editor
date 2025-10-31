@@ -18,6 +18,29 @@ function j(body: unknown, status = 200) {
   });
 }
 
+// ===== Configurable min size =====
+const MIN_IMAGE_BYTES = Number(Deno.env.get("MIN_IMAGE_BYTES") ?? 120_000); // ~120KB
+
+function estimateDataUriBytes(uri: string): number | null {
+  if (!uri.startsWith("data:")) return null;
+  const comma = uri.indexOf(",");
+  if (comma === -1) return null;
+  const payload = uri.slice(comma + 1);
+  const cleaned = payload.replace(/^base64,/, "");
+  return Math.floor((cleaned.length * 3) / 4); // base64 4 chars -> 3 bytes
+}
+
+async function probeBytes(url: string): Promise<number | null> {
+  const est = estimateDataUriBytes(url);
+  if (est !== null) return est;
+  try {
+    const head = await fetch(url, { method: "HEAD" });
+    const len = head.headers.get("content-length");
+    if (len && /^\d+$/.test(len)) return Number(len);
+  } catch { /* best-effort only */ }
+  return null; // unknown
+}
+
 const PRESETS = {
   draft:    { target_polycount: 120_000, should_remesh: true, should_texture: true, enable_pbr: true },
   standard: { target_polycount: 220_000, should_remesh: true, should_texture: true, enable_pbr: true },
@@ -57,16 +80,29 @@ serve(async (req) => {
       return j({ error: "imageUrl or imageUrls[] required" }, 400);
     }
 
-    // Basic hygiene: block obviously tiny images (<200KB) which often yield blurry textures
+    // Basic hygiene: block obviously tiny images with configurable threshold
     const list = imageUrls?.length ? imageUrls : [imageUrl!];
+    const allowSmall: boolean = !!body.forceSmall;
+
+    let tooSmall = false;
+    let gotBytes: number | null = null;
+
     for (const url of list) {
-      try {
-        const head = await fetch(url!, { method: "HEAD" });
-        const size = Number(head.headers.get("content-length") ?? "0");
-        if (Number.isFinite(size) && size > 0 && size < 200_000) {
-          return j({ error: "image too small (<200KB). Use higher-res images with clean lighting." }, 400);
-        }
-      } catch { /* best effort only */ }
+      const bytes = await probeBytes(url!);
+      if (bytes !== null) {
+        gotBytes = bytes; // last known
+        if (bytes < MIN_IMAGE_BYTES) { tooSmall = true; break; }
+      }
+    }
+
+    // Only block when we are sure the image is small, and no override provided
+    if (tooSmall && !allowSmall) {
+      return j({
+        error: "image_too_small",
+        min_bytes: MIN_IMAGE_BYTES,
+        got_bytes: gotBytes,
+        tip: "Upload original photos (≥800px, good lighting). Avoid compressed screenshots or chat re-uploads."
+      }, 400);
     }
 
     const overrides = {
@@ -131,7 +167,7 @@ serve(async (req) => {
       await supabase.from("generation_tasks")
         .update({ status: "FAILED", error: json, finished_at: new Date().toISOString() })
         .eq("id", taskRow.id);
-      return j({ error: "meshy call failed", details: json }, res.status || 502);
+      return j({ error: "meshy_call_failed", details: json }, res.status || 502);
     }
 
     const meshyTaskId: string = json.result;

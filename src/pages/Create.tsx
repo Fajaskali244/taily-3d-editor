@@ -10,13 +10,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 
+const TOO_SMALL = 120_000; // keep in sync with MIN_IMAGE_BYTES
+
 // helper: upload files to private bucket and create short signed URLs
-async function toSignedUrls(files: File[]): Promise<string[]> {
+async function toSignedUrls(files: File[], onWarning: (msg: string) => void): Promise<string[]> {
   const urls: string[] = [];
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("auth required");
 
   for (const f of files) {
+    if (f.size > 0 && f.size < TOO_SMALL) {
+      onWarning(`"${f.name}" looks small (${f.size} bytes). Try the original file for better quality.`);
+    }
     const path = `${user.id}/${Date.now()}-${f.name}`;
     const up = await supabase.storage.from("user-uploads").upload(path, f, { upsert: false });
     if (up.error) throw up.error;
@@ -38,6 +43,7 @@ export default function Create() {
   const [imageUrl, setImageUrl] = useState<string>('')
   const [preset, setPreset] = useState<QualityPreset>('standard')
   const [prompt, setPrompt] = useState<string>('')
+  const [forceSmall, setForceSmall] = useState(false)
   
   const tab = params.get('tab') ?? 'image'
 
@@ -54,10 +60,19 @@ export default function Create() {
 
     setLoading(true)
     try {
-      const uploadedUrls = files.length ? await toSignedUrls(files) : undefined
+      const uploadedUrls = files.length ? await toSignedUrls(files, (msg) => {
+        toast({
+          title: 'Image quality warning',
+          description: msg,
+          variant: 'default'
+        })
+      }) : undefined
+      
+      const isDev = import.meta.env.DEV;
+      
       const payload = uploadedUrls?.length
-        ? { imageUrls: uploadedUrls, texturePrompt: prompt, preset }
-        : { imageUrl, texturePrompt: prompt, preset }
+        ? { imageUrls: uploadedUrls, texturePrompt: prompt, preset, forceSmall: isDev && forceSmall ? true : undefined }
+        : { imageUrl, texturePrompt: prompt, preset, forceSmall: isDev && forceSmall ? true : undefined }
 
       const { id } = await createMeshyTask(payload as any)
       
@@ -181,6 +196,21 @@ export default function Create() {
                   placeholder="e.g., glossy white paint, crisp decals, realistic tires"
                 />
               </div>
+
+              {import.meta.env.DEV && (
+                <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                  <input
+                    type="checkbox"
+                    id="forceSmall"
+                    checked={forceSmall}
+                    onChange={(e) => setForceSmall(e.target.checked)}
+                    className="cursor-pointer"
+                  />
+                  <Label htmlFor="forceSmall" className="cursor-pointer text-sm text-muted-foreground">
+                    Force generate anyway (dev override)
+                  </Label>
+                </div>
+              )}
 
               <Button 
                 onClick={handleSubmit} 

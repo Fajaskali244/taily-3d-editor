@@ -7,6 +7,7 @@ export async function createMeshyTask(params: {
   imageUrls?: string[];
   texturePrompt?: string;
   preset?: QualityPreset;
+  forceSmall?: boolean;
 }) {
   const { data: { session } } = await supabase.auth.getSession();
   
@@ -21,11 +22,13 @@ export async function createMeshyTask(params: {
       imageUrls: params.imageUrls,
       texturePrompt: params.texturePrompt,
       preset: params.preset ?? "standard",
+      forceSmall: params.forceSmall,
     },
   });
   
   if (error || !data?.id) {
-    throw new Error(error?.message ?? "meshy-create failed");
+    const details = (error as any)?.context ?? (error as any)?.message ?? "meshy-create failed";
+    throw new Error(details);
   }
   return data as { id: string; meshyTaskId: string };
 }
