@@ -1,30 +1,36 @@
 import { supabase } from '@/integrations/supabase/client'
 
-export async function createMeshyTask(imageUrl: string, texturePrompt?: string) {
-  if (!imageUrl) throw new Error('imageUrl required')
-  const { data: { session } } = await supabase.auth.getSession()
+export type QualityPreset = "draft" | "standard" | "high";
+
+export async function createMeshyTask(params: {
+  imageUrl?: string;
+  imageUrls?: string[];
+  texturePrompt?: string;
+  preset?: QualityPreset;
+}) {
+  const { data: { session } } = await supabase.auth.getSession();
   
   if (!session?.access_token) {
     throw new Error('Authentication required')
   }
 
-  const { data, error } = await supabase.functions.invoke('meshy', {
-    body: { 
-      action: 'create',
-      source: 'image', 
-      imageUrl, 
-      texturePrompt 
+  const { data, error } = await supabase.functions.invoke("meshy-create", {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+    body: {
+      imageUrl: params.imageUrl,
+      imageUrls: params.imageUrls,
+      texturePrompt: params.texturePrompt,
+      preset: params.preset ?? "standard",
     },
-    headers: { Authorization: `Bearer ${session.access_token}` }
-  })
-
+  });
+  
   if (error || !data?.id) {
-    throw new Error(error?.message ?? 'create failed (no id)')
+    throw new Error(error?.message ?? "meshy-create failed");
   }
-  return data as { id: string; meshyId: string }
+  return data as { id: string; meshyTaskId: string };
 }
 
-export async function createMeshyTaskFromText(prompt: string) {
+export async function createMeshyTaskFromText(prompt: string, preset?: QualityPreset) {
   if (!prompt) throw new Error('prompt required')
   const { data: { session } } = await supabase.auth.getSession()
   

@@ -235,6 +235,10 @@ export type Database = {
           model_usdz_url: string | null
           progress: number | null
           prompt: string | null
+          requested_ai_model: string | null
+          requested_polycount: number | null
+          requested_should_remesh: boolean | null
+          requested_should_texture: boolean | null
           source: Database["public"]["Enums"]["generation_source"]
           started_at: string | null
           status: Database["public"]["Enums"]["generation_status"]
@@ -256,6 +260,10 @@ export type Database = {
           model_usdz_url?: string | null
           progress?: number | null
           prompt?: string | null
+          requested_ai_model?: string | null
+          requested_polycount?: number | null
+          requested_should_remesh?: boolean | null
+          requested_should_texture?: boolean | null
           source: Database["public"]["Enums"]["generation_source"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["generation_status"]
@@ -277,6 +285,10 @@ export type Database = {
           model_usdz_url?: string | null
           progress?: number | null
           prompt?: string | null
+          requested_ai_model?: string | null
+          requested_polycount?: number | null
+          requested_should_remesh?: boolean | null
+          requested_should_texture?: boolean | null
           source?: Database["public"]["Enums"]["generation_source"]
           started_at?: string | null
           status?: Database["public"]["Enums"]["generation_status"]
