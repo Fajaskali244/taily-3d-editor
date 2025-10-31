@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/integrations/supabase/client'
+import Navigation from '@/components/Navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, ArrowLeft } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 
 interface Profile {
   id?: string
@@ -173,18 +174,11 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <div className="max-w-2xl mx-auto p-6 pt-24">
         <Card>
           <CardHeader>
-            <Button 
-              variant="ghost" 
-              onClick={() => navigate(-1)}
-              className="mb-4 flex items-center self-start"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
             <CardTitle>My Profile</CardTitle>
             <CardDescription>
               Manage your personal information and shipping details

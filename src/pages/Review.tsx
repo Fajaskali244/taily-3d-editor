@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import MeshyModelPreview from '../components/MeshyModelPreview'
-import { GenerationProgress } from '../components/GenerationProgress'
+import MeshyModelPreview from '@/components/MeshyModelPreview'
+import { GenerationProgress } from '@/components/GenerationProgress'
+import Navigation from '@/components/Navigation'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
@@ -71,7 +72,8 @@ export default function Review() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-5xl mx-auto p-6 space-y-6">
+      <Navigation />
+      <div className="max-w-5xl mx-auto p-6 pt-24 space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Review your 3D model</h1>
           <p className="text-muted-foreground mt-2">

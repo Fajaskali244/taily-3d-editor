@@ -177,12 +177,23 @@ async function pollTask(id: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const url = new URL(req.url);
-  const path = url.pathname.replace(/^\/meshy/, "");
-  
   try {
+    const body = await req.json();
+    const action = body.action;
+
+    if (action === "create") {
+      return await createTask(req, body);
+    }
+    
+    if (action === "status" && body.id) {
+      return await pollTask(body.id);
+    }
+    
+    // Legacy path-based routing (for backward compatibility)
+    const url = new URL(req.url);
+    const path = url.pathname.replace(/^\/meshy/, "");
+    
     if (req.method === "POST" && path === "/tasks") {
-      const body = await req.json();
       return await createTask(req, body);
     }
     

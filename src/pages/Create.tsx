@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import { supabase } from '@/integrations/supabase/client'
-import UploadDropzone from '../components/UploadDropzone'
-import TextPromptForm from '../components/TextPromptForm'
-import { Button } from '@/components/ui/button'
+import { createMeshyTask, createMeshyTaskFromText } from '@/lib/genTasks'
+import UploadDropzone from '@/components/UploadDropzone'
+import TextPromptForm from '@/components/TextPromptForm'
+import Navigation from '@/components/Navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
-import { EDGE_FN_BASE } from '../config'
 
 export default function Create() {
   const nav = useNavigate()
@@ -18,7 +17,7 @@ export default function Create() {
   
   const tab = params.get('tab') ?? 'image'
 
-  async function createTask(body: any) {
+  async function handleImageUpload(imageUrl: string) {
     if (!user) {
       toast({
         title: 'Authentication required',
@@ -31,26 +30,41 @@ export default function Create() {
 
     setLoading(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        throw new Error('No valid session')
-      }
-
-      const res = await fetch(`${EDGE_FN_BASE}/tasks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify(body)
-      })
-
-      const data = await res.json()
+      const data = await createMeshyTask(imageUrl)
       
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create task')
-      }
+      toast({
+        title: 'Generation started',
+        description: 'Your 3D model is being created...'
+      })
+      
+      nav(`/review/${data.id}`)
+    } catch (error) {
+      console.error('Task creation error:', error)
+      toast({
+        title: 'Generation failed',
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
 
+  async function handleTextPrompt(prompt: string) {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to generate 3D models',
+        variant: 'destructive'
+      })
+      nav('/auth')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const data = await createMeshyTaskFromText(prompt)
+      
       toast({
         title: 'Generation started',
         description: 'Your 3D model is being created...'
@@ -71,7 +85,8 @@ export default function Create() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
+      <Navigation />
+      <div className="max-w-4xl mx-auto p-6 pt-24 space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Create your 3D model</h1>
           <p className="text-muted-foreground mt-2">
@@ -87,7 +102,7 @@ export default function Create() {
 
           <TabsContent value="image" className="space-y-4 mt-6">
             <UploadDropzone 
-              onUploaded={url => createTask({ source: 'image', imageUrl: url })} 
+              onUploaded={handleImageUpload} 
             />
             <p className="text-sm text-muted-foreground">
               Upload an image and we'll generate a 3D model from it automatically.
@@ -96,7 +111,7 @@ export default function Create() {
 
           <TabsContent value="text" className="space-y-4 mt-6">
             <TextPromptForm 
-              onSubmit={prompt => createTask({ source: 'text', prompt })} 
+              onSubmit={handleTextPrompt} 
             />
             <p className="text-sm text-muted-foreground">
               Describe what you want to create and AI will generate a 3D model.

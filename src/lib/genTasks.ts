@@ -1,29 +1,49 @@
 import { supabase } from '@/integrations/supabase/client'
 
-const EDGE_FN_BASE = 'https://npvkyiujvxyrrqdyrhas.functions.supabase.co/meshy'
-
 export async function createMeshyTask(imageUrl: string, texturePrompt?: string) {
   if (!imageUrl) throw new Error('imageUrl required')
   const { data: { session } } = await supabase.auth.getSession()
-
-  const headers: HeadersInit = { 'Content-Type': 'application/json' }
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`
+  
+  if (!session?.access_token) {
+    throw new Error('Authentication required')
   }
 
-  const res = await fetch(`${EDGE_FN_BASE}/tasks`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ source: 'image', imageUrl, texturePrompt })
+  const { data, error } = await supabase.functions.invoke('meshy', {
+    body: { 
+      action: 'create',
+      source: 'image', 
+      imageUrl, 
+      texturePrompt 
+    },
+    headers: { Authorization: `Bearer ${session.access_token}` }
   })
 
-  if (!res.ok) {
-    const t = await res.text()
-    throw new Error(`create failed ${res.status}: ${t || 'unknown error'}`)
+  if (error || !data?.id) {
+    throw new Error(error?.message ?? 'create failed (no id)')
+  }
+  return data as { id: string; meshyId: string }
+}
+
+export async function createMeshyTaskFromText(prompt: string) {
+  if (!prompt) throw new Error('prompt required')
+  const { data: { session } } = await supabase.auth.getSession()
+  
+  if (!session?.access_token) {
+    throw new Error('Authentication required')
   }
 
-  const data = await res.json()
-  if (!data?.id) throw new Error('create failed (no id)')
+  const { data, error } = await supabase.functions.invoke('meshy', {
+    body: { 
+      action: 'create',
+      source: 'text', 
+      prompt 
+    },
+    headers: { Authorization: `Bearer ${session.access_token}` }
+  })
+
+  if (error || !data?.id) {
+    throw new Error(error?.message ?? 'create failed (no id)')
+  }
   return data as { id: string; meshyId: string }
 }
 
@@ -31,16 +51,11 @@ export async function fetchTask(id: string) {
   if (!id) throw new Error('id required')
   const { data: { session } } = await supabase.auth.getSession()
 
-  const headers: HeadersInit = {}
-  if (session?.access_token) {
-    headers['Authorization'] = `Bearer ${session.access_token}`
-  }
+  const { data, error } = await supabase.functions.invoke('meshy', {
+    body: { action: 'status', id },
+    headers: { Authorization: `Bearer ${session?.access_token ?? ''}` }
+  })
 
-  const res = await fetch(`${EDGE_FN_BASE}/tasks/${id}`, { headers })
-  if (!res.ok) {
-    const t = await res.text()
-    throw new Error(t || 'fetch failed')
-  }
-
-  return res.json()
+  if (error) throw new Error(error.message ?? 'fetch failed')
+  return data
 }

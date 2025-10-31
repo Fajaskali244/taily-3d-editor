@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import Navigation from '@/components/Navigation'
 import { SecurityMonitor } from '@/components/SecurityMonitor'
-import { Chatbot } from '@/components/Chatbot'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -314,7 +313,7 @@ const Index = () => {
             </p>
             <div className="mt-10">
               <Button size="lg" variant="secondary" className="h-12 px-8" asChild>
-                <Link to="/customize/classic">
+                <Link to="/create">
                   Start Your Design
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
@@ -323,9 +322,6 @@ const Index = () => {
           </div>
         </div>
       </section>
-
-      {/* Chatbot - Defer to improve initial load */}
-      {typeof window !== 'undefined' && <Chatbot />}
     </div>
   )
 }

@@ -1,8 +1,4 @@
 import { supabase } from '@/integrations/supabase/client'
-import { getItemById } from './catalog'
-
-// Re-export the getItemById function for backward compatibility
-export { getItemById }
 
 export const getSignedUrl = async (path: string, bucket: string = 'design-models'): Promise<string | null> => {
   try {
