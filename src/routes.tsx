@@ -1,62 +1,35 @@
-import { createBrowserRouter, Navigate } from "react-router-dom";
-import { lazy, Suspense } from "react";
-
-// Eager-load critical pages
-import Index from "@/pages/Index";
+// src/routes.tsx
+import { createBrowserRouter, redirect } from "react-router-dom";
+import AppLayout from "@/components/layouts/AppLayout";
+import Home from "@/pages/Home";
 import Create from "@/pages/Create";
-
-// Lazy-load secondary pages
-const Review = lazy(() => import("@/pages/Review"));
-const MyDesigns = lazy(() => import("@/pages/MyDesigns"));
-const Auth = lazy(() => import("@/pages/Auth"));
-const AdminOrders = lazy(() => import("@/pages/AdminOrders"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
+import Review from "@/pages/Review";
+import MyDesigns from "@/pages/MyDesigns";
+import AuthPage from "@/pages/Auth";
+import NotFound from "@/pages/NotFound";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-  </div>
-);
-
-const SuspenseWrapper = ({ children }: { children: React.ReactNode }) => (
-  <Suspense fallback={<LoadingFallback />}>{children}</Suspense>
-);
 
 export const router = createBrowserRouter([
   {
     path: "/",
-    errorElement: <SuspenseWrapper><NotFound /></SuspenseWrapper>,
+    element: <AppLayout />,
+    errorElement: <NotFound />,
     children: [
-      { index: true, element: <Index /> },
+      { index: true, element: <Home /> },
       { path: "create", element: <Create /> },
       {
         path: "review/:taskId",
-        element: <SuspenseWrapper><Review /></SuspenseWrapper>,
+        element: <Review />,
         loader: async ({ params }) => {
           const id = (params.taskId ?? "").replace(/^:/, "");
-          if (!UUID_RE.test(id)) {
-            // Track legacy redirect
-            console.warn("Invalid UUID in review route:", id);
-            throw new Response("Invalid task ID", { status: 404 });
-          }
+          if (!UUID_RE.test(id)) throw redirect("/create");
           return null;
         },
       },
-      { path: "my-designs", element: <SuspenseWrapper><MyDesigns /></SuspenseWrapper> },
-      { path: "auth", element: <SuspenseWrapper><Auth /></SuspenseWrapper> },
-      { path: "admin/orders", element: <SuspenseWrapper><AdminOrders /></SuspenseWrapper> },
-
-      // Legacy redirects
-      { path: "customize-classic", element: <Navigate to="/create" replace /> },
-      { path: "customize/*", element: <Navigate to="/create" replace /> },
-      { path: "cart", element: <Navigate to="/my-designs" replace /> },
-      { path: "catalog", element: <Navigate to="/create" replace /> },
-      { path: "designs", element: <Navigate to="/my-designs" replace /> },
-      { path: "editor", element: <Navigate to="/create" replace /> },
-
-      { path: "*", element: <SuspenseWrapper><NotFound /></SuspenseWrapper> },
+      { path: "my-designs", element: <MyDesigns /> },
+      { path: "auth", element: <AuthPage /> },
+      { path: "*", element: <NotFound /> },
     ],
   },
 ]);
