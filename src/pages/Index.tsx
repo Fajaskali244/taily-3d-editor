@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, Star, Palette, Zap, Shield } from 'lucide-react'
+import lumoLogo from '@/assets/lumo-logo.png'
 
 interface Product {
   id: string
@@ -121,6 +122,11 @@ const Index = () => {
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" />
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
           <div className="text-center">
+            <img 
+              src={lumoLogo} 
+              alt="LUMO" 
+              className="mx-auto mb-8 h-32 w-auto"
+            />
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Own your Memory
             </h1>
