@@ -20,31 +20,49 @@ export default function MyDesigns() {
   const [rows, setRows] = useState<DesignRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const load = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setRows([]);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("designs")
+      .select("id, name, chosen_glb_url, chosen_thumbnail_url, generation_task_id, created_at")
+      .not("chosen_glb_url", "is", null)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("load designs", error);
+      setRows([]);
+    } else {
+      setRows(data ?? []);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { 
-        setRows([]); 
-        setLoading(false); 
-        return; 
-      }
-
-      const { data, error } = await supabase
-        .from("designs")
-        .select("id, name, chosen_glb_url, chosen_thumbnail_url, generation_task_id, created_at")
-        .order("created_at", { ascending: false });
-
-      if (!active) return;
-      if (error) {
-        console.error("load designs", error);
-        setRows([]);
-      } else {
-        setRows(data ?? []);
-      }
-      setLoading(false);
+      await load();
+      if (active) setLoading(false);
     })();
-    return () => { active = false; };
+
+    const channel = supabase
+      .channel("designs-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "designs" },
+        (_payload) => {
+          load();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) {
@@ -64,7 +82,8 @@ export default function MyDesigns() {
         <Navigation />
         <div className="max-w-4xl mx-auto p-6 pt-24 text-center space-y-6">
           <h1 className="text-3xl font-bold">My Designs</h1>
-          <p className="text-muted-foreground">No designs yet</p>
+          <p className="text-muted-foreground">No finished models yet</p>
+          <p className="text-sm text-muted-foreground">If you just generated one, it will appear here when finished.</p>
           <Button onClick={() => navigate("/create")}>Create your first 3D model</Button>
         </div>
       </div>
