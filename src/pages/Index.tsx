@@ -109,100 +109,103 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-primary">
+    <div className="min-h-screen bg-card">
       {/* Critical above-the-fold content first */}
       <Navigation />
       
       {/* Defer SecurityMonitor to improve FCP */}
       {typeof window !== 'undefined' && <SecurityMonitor />}
       
-      {/* Hero Section - Optimized for LCP */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary/10 via-background to-secondary/10">
-        <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" />
-        <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Own your Memory
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl" style={{ contentVisibility: 'auto' }}>
-              Hold the moment that holds you. Upload a photo, shape the details, and receive a 3D print that keeps your story close.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-4">
-              <Button size="lg" className="h-12 px-8" asChild>
-                <Link to="/create">
-                  Start Designing
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" className="h-12 px-8" asChild>
-                <Link to="/catalog">
-                  Browse Products
-                </Link>
-              </Button>
+      {/* Gradient wrapper for Hero and Features sections */}
+      <div className="page-gradient text-white">
+        {/* Hero Section - Optimized for LCP */}
+        <section className="relative overflow-hidden bg-transparent">
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" />
+          <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold tracking-tight sm:text-6xl lg:text-7xl text-white">
+                Own your Memory
+              </h1>
+              <p className="mx-auto mt-6 max-w-2xl text-lg text-white/70 sm:text-xl" style={{ contentVisibility: 'auto' }}>
+                Hold the moment that holds you. Upload a photo, shape the details, and receive a 3D print that keeps your story close.
+              </p>
+              <div className="mt-10 flex items-center justify-center gap-4">
+                <Button size="lg" className="h-12 px-8" asChild>
+                  <Link to="/create">
+                    Start Designing
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" className="h-12 px-8 bg-white/10 border-white/20 hover:bg-white/20 text-white" asChild>
+                  <Link to="/catalog">
+                    Browse Products
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Section - Deferred for better LCP */}
-      <section className="py-24 bg-gradient-to-br from-secondary/10 via-background to-primary/10" style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Why Choose Taily?
-            </h2>
-            <p className="mt-4 text-lg text-muted-foreground">
-              The fastest way to create custom keychains that reflect your personality
-            </p>
+        {/* Features Section - Deferred for better LCP */}
+        <section className="py-24 bg-transparent" style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-white">
+                Why Choose Taily?
+              </h2>
+              <p className="mt-4 text-lg text-white/70">
+                The fastest way to create custom keychains that reflect your personality
+              </p>
+            </div>
+            <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
+                <div className="text-center">
+                  <Palette className="mx-auto h-12 w-12 text-white" />
+                  <h3 className="mt-4 text-xl font-semibold text-white">3D Design Tools</h3>
+                </div>
+                <div className="mt-4">
+                  <p className="text-center text-white/70">
+                    Intuitive 3D editor with real-time preview. See exactly how your keychain will look.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
+                <div className="text-center">
+                  <Zap className="mx-auto h-12 w-12 text-white" />
+                  <h3 className="mt-4 text-xl font-semibold text-white">Lightning Fast</h3>
+                </div>
+                <div className="mt-4">
+                  <p className="text-center text-white/70">
+                    Design to checkout in under 3 clicks. Get your custom keychain in minutes, not hours.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
+                <div className="text-center">
+                  <Shield className="mx-auto h-12 w-12 text-white" />
+                  <h3 className="mt-4 text-xl font-semibold text-white">Premium Quality</h3>
+                </div>
+                <div className="mt-4">
+                  <p className="text-center text-white/70">
+                    High-quality materials including acrylic, metal, and wood. Built to last.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
+                <div className="text-center">
+                  <Star className="mx-auto h-12 w-12 text-white" />
+                  <h3 className="mt-4 text-xl font-semibold text-white">Trusted by Thousands</h3>
+                </div>
+                <div className="mt-4">
+                  <p className="text-center text-white/70">
+                    Join thousands of satisfied customers who love their custom keychains.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="text-center">
-                <Palette className="mx-auto h-12 w-12 text-primary" />
-                <CardTitle>3D Design Tools</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground">
-                  Intuitive 3D editor with real-time preview. See exactly how your keychain will look.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="text-center">
-                <Zap className="mx-auto h-12 w-12 text-primary" />
-                <CardTitle>Lightning Fast</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground">
-                  Design to checkout in under 3 clicks. Get your custom keychain in minutes, not hours.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="text-center">
-                <Shield className="mx-auto h-12 w-12 text-primary" />
-                <CardTitle>Premium Quality</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground">
-                  High-quality materials including acrylic, metal, and wood. Built to last.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="text-center">
-                <Star className="mx-auto h-12 w-12 text-primary" />
-                <CardTitle>Trusted by Thousands</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-center text-muted-foreground">
-                  Join thousands of satisfied customers who love their custom keychains.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       {/* Popular Products */}
       <section className="py-24 bg-card">

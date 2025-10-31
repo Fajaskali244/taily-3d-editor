@@ -4,6 +4,21 @@
 
 /* Taily Design System - Beautiful gradients and colors for 3D keychain platform */
 
+:root {
+  --bg-start: #0b0824;   /* deep indigo */
+  --bg-mid:   #2a1861;   /* purple */
+  --bg-end:   #1b4ab9;   /* blue */
+}
+
+.page-gradient {
+  /* subtle radial glow + main linear gradient */
+  background:
+    radial-gradient(1100px 600px at 10% -10%, rgba(255,255,255,0.06), transparent),
+    linear-gradient(180deg, var(--bg-start) 0%, var(--bg-mid) 45%, var(--bg-end) 100%);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+}
+
 @layer base {
   :root {
     /* LUMO brand colors - Purple to Blue gradient */
