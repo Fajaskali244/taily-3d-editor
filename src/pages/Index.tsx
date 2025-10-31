@@ -206,7 +206,7 @@ const Index = () => {
       </section>
 
       {/* Popular Products */}
-      <section className="py-24">
+      <section className="py-24 bg-card">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
