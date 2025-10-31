@@ -114,7 +114,10 @@ export type Database = {
       }
       designs: {
         Row: {
+          chosen_glb_url: string | null
+          chosen_thumbnail_url: string | null
           created_at: string
+          generation_task_id: string | null
           id: string
           is_published: boolean | null
           name: string
@@ -127,7 +130,10 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          chosen_glb_url?: string | null
+          chosen_thumbnail_url?: string | null
           created_at?: string
+          generation_task_id?: string | null
           id?: string
           is_published?: boolean | null
           name: string
@@ -140,7 +146,10 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          chosen_glb_url?: string | null
+          chosen_thumbnail_url?: string | null
           created_at?: string
+          generation_task_id?: string | null
           id?: string
           is_published?: boolean | null
           name?: string
@@ -153,6 +162,13 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "designs_generation_task_id_fkey"
+            columns: ["generation_task_id"]
+            isOneToOne: false
+            referencedRelation: "generation_tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "designs_product_id_fkey"
             columns: ["product_id"]

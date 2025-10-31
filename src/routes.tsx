@@ -4,6 +4,7 @@ import { lazy, Suspense } from "react";
 // Eager-load critical pages
 import Index from "@/pages/Index";
 import Create from "@/pages/Create";
+import DesignView from "@/pages/DesignView";
 
 // Lazy-load secondary pages
 const Review = lazy(() => import("@/pages/Review"));
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
         },
       },
       { path: "my-designs", element: <SuspenseWrapper><MyDesigns /></SuspenseWrapper> },
+      { path: "design/:id", element: <DesignView /> },
       { path: "auth", element: <SuspenseWrapper><Auth /></SuspenseWrapper> },
       { path: "admin/orders", element: <SuspenseWrapper><AdminOrders /></SuspenseWrapper> },
 
