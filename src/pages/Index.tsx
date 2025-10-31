@@ -145,7 +145,7 @@ const Index = () => {
       </section>
 
       {/* Features Section - Deferred for better LCP */}
-      <section className="py-24 bg-muted/50" style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
+      <section className="py-24 bg-gradient-to-br from-secondary/10 via-background to-primary/10" style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
