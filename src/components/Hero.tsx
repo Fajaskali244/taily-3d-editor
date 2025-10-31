@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/hero-button"
+import { Link } from "react-router-dom"
 
 interface HeroProps {
   genderPreference: 'him' | 'her'
@@ -28,20 +29,24 @@ export const Hero = ({ genderPreference }: HeroProps) => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button 
-            variant="hero-solid" 
-            size="xl"
-            className="font-semibold"
-          >
-            Start Creating
-          </Button>
-          <Button 
-            variant="hero" 
-            size="xl"
-            className="font-semibold"
-          >
-            View Gallery
-          </Button>
+          <Link to="/create">
+            <Button 
+              variant="hero-solid" 
+              size="xl"
+              className="font-semibold"
+            >
+              Start Creating
+            </Button>
+          </Link>
+          <Link to="/designs">
+            <Button 
+              variant="hero" 
+              size="xl"
+              className="font-semibold"
+            >
+              View Gallery
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
