@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { createMeshyTask, createMeshyTaskFromText, QualityPreset } from '@/lib/genTasks'
@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 
-const TOO_SMALL = 120_000; // keep in sync with MIN_IMAGE_BYTES
+const TOO_SMALL = 200_000; // minimum 200 KB per image
+const MAX_FILES = 8;
 
 // helper: upload files to private bucket and create short signed URLs
 async function toSignedUrls(files: File[], onWarning: (msg: string) => void): Promise<string[]> {
@@ -32,20 +33,71 @@ async function toSignedUrls(files: File[], onWarning: (msg: string) => void): Pr
   return urls;
 }
 
+type PickedFile = { file: File; previewUrl: string };
+
 export default function Create() {
   const nav = useNavigate()
   const [params, setParams] = useSearchParams()
   const { user } = useAuth()
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
+  const inputRef = useRef<HTMLInputElement | null>(null)
   
-  const [files, setFiles] = useState<File[]>([])
+  const [picked, setPicked] = useState<PickedFile[]>([])
   const [imageUrl, setImageUrl] = useState<string>('')
   const [preset, setPreset] = useState<QualityPreset>('standard')
   const [prompt, setPrompt] = useState<string>('')
   const [forceSmall, setForceSmall] = useState(false)
   
   const tab = params.get('tab') ?? 'image'
+
+  const handleFiles = (filesList: FileList | null) => {
+    if (!filesList) return;
+    const files = Array.from(filesList);
+    const validated: PickedFile[] = [];
+
+    for (const f of files) {
+      if (!f.type.startsWith('image/')) {
+        toast({
+          title: 'Invalid file type',
+          description: `"${f.name}" is not an image file`,
+          variant: 'destructive'
+        });
+        continue;
+      }
+      if (f.size < TOO_SMALL) {
+        toast({
+          title: 'File too small',
+          description: `"${f.name}" must be ≥ 200 KB`,
+          variant: 'destructive'
+        });
+        continue;
+      }
+      if (picked.length + validated.length >= MAX_FILES) {
+        toast({
+          title: 'Max files reached',
+          description: `Maximum ${MAX_FILES} images allowed`,
+          variant: 'destructive'
+        });
+        break;
+      }
+      validated.push({ file: f, previewUrl: URL.createObjectURL(f) });
+    }
+
+    setPicked(prev => [...prev, ...validated].slice(0, MAX_FILES));
+  };
+
+  const removeFile = (idx: number) => {
+    setPicked(prev => {
+      URL.revokeObjectURL(prev[idx].previewUrl);
+      return prev.filter((_, i) => i !== idx);
+    });
+  };
+
+  const clearAllFiles = () => {
+    picked.forEach(p => URL.revokeObjectURL(p.previewUrl));
+    setPicked([]);
+  };
 
   async function handleSubmit() {
     if (!user) {
@@ -60,7 +112,8 @@ export default function Create() {
 
     setLoading(true)
     try {
-      const uploadedUrls = files.length ? await toSignedUrls(files, (msg) => {
+      const filesToUpload = picked.map(p => p.file);
+      const uploadedUrls = filesToUpload.length ? await toSignedUrls(filesToUpload, (msg) => {
         toast({
           title: 'Image quality warning',
           description: msg,
@@ -161,22 +214,66 @@ export default function Create() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Upload multiple angles (3–5 images recommended)</Label>
-                <Input 
-                  type="file" 
-                  accept="image/*" 
-                  multiple 
-                  onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-                  className="cursor-pointer"
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handleFiles(e.target.files)}
+                  className="hidden"
                 />
-                {files.length > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {files.length} file{files.length > 1 ? 's' : ''} selected
-                  </p>
-                )}
+                <div
+                  className="rounded-lg border-2 border-dashed p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                  onClick={() => inputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleFiles(e.dataTransfer.files);
+                  }}
+                >
+                  <div className="text-4xl mb-2">📷</div>
+                  <div className="font-medium">Choose files or drag & drop</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    PNG/JPG, ≥ 200 KB each, max {MAX_FILES} files
+                  </div>
+                </div>
               </div>
 
+              {picked.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">
+                      {picked.length} file{picked.length > 1 ? 's' : ''} selected
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={clearAllFiles}
+                      className="text-xs"
+                    >
+                      Clear all
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {picked.map((p, i) => (
+                      <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border-2 border-border">
+                        <img src={p.previewUrl} className="w-full h-full object-cover" alt={`Preview ${i + 1}`} />
+                        <button
+                          type="button"
+                          onClick={() => removeFile(i)}
+                          className="absolute top-1 right-1 text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded hover:bg-destructive/90"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="text-center text-sm text-muted-foreground">
-                or paste a single image URL below
+                {picked.length > 0 ? 'or' : 'alternatively, paste a single image URL below'}
               </div>
 
               <div className="space-y-2">
@@ -185,7 +282,13 @@ export default function Create() {
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
                   placeholder="https://..."
+                  disabled={picked.length > 0}
                 />
+                {picked.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Multiple files selected; the pasted URL will be ignored.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -227,10 +330,10 @@ export default function Create() {
 
               <Button 
                 onClick={handleSubmit} 
-                disabled={loading || (!files.length && !imageUrl.trim())}
+                disabled={loading || (!picked.length && !imageUrl.trim())}
                 className="w-full"
               >
-                {loading ? 'Starting...' : 'Generate 3D Model'}
+                {loading ? 'Uploading & generating...' : 'Generate 3D Model'}
               </Button>
             </div>
           </TabsContent>
