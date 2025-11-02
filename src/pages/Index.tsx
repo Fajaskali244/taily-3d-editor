@@ -7,7 +7,8 @@ import { SecurityMonitor } from '@/components/SecurityMonitor'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowRight, Star, Palette, Zap, Shield } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
+import WhyChooseLumo from '@/components/home/WhyChooseLumo'
 
 interface Product {
   id: string
@@ -146,65 +147,8 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Features Section - Deferred for better LCP */}
-        <section className="py-24 bg-transparent" style={{ contentVisibility: 'auto', containIntrinsicSize: '1200px' }}>
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl text-white">
-                Why Choose Taily?
-              </h2>
-              <p className="mt-4 text-lg text-white/70">
-                The fastest way to create custom keychains that reflect your personality
-              </p>
-            </div>
-            <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
-                <div className="text-center">
-                  <Palette className="mx-auto h-12 w-12 text-white" />
-                  <h3 className="mt-4 text-xl font-semibold text-white">3D Design Tools</h3>
-                </div>
-                <div className="mt-4">
-                  <p className="text-center text-white/70">
-                    Intuitive 3D editor with real-time preview. See exactly how your keychain will look.
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
-                <div className="text-center">
-                  <Zap className="mx-auto h-12 w-12 text-white" />
-                  <h3 className="mt-4 text-xl font-semibold text-white">Lightning Fast</h3>
-                </div>
-                <div className="mt-4">
-                  <p className="text-center text-white/70">
-                    Design to checkout in under 3 clicks. Get your custom keychain in minutes, not hours.
-                  </p>
-                </div>
-              </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm shadow-lg shadow-black/20 p-6">
-                <div className="text-center">
-                  <Shield className="mx-auto h-12 w-12 text-white" />
-                  <h3 className="mt-4 text-xl font-semibold text-white">Premium Quality</h3>
-                </div>
-                <div className="mt-4">
-                  <p className="text-center text-white/70">
-                    High-quality materials including acrylic, metal, and wood. Built to last.
-                  </p>
-                </div>
-              </div>
-              <div className="card-surface rounded-xl2 p-6 shadow-brand">
-                <div className="text-center">
-                  <Star className="mx-auto h-12 w-12 text-white" />
-                  <h3 className="font-heading mt-4 text-xl font-semibold text-white">Trusted by Thousands</h3>
-                </div>
-                <div className="mt-4">
-                  <p className="font-body text-center text-white/80">
-                    Join thousands of satisfied customers who love their custom keychains.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Features Section */}
+        <WhyChooseLumo />
       </div>
 
       {/* Popular Products */}
