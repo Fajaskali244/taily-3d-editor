@@ -297,9 +297,15 @@ export default function Create() {
                 <Label>Texture prompt (optional)</Label>
                 <Input
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e) => setPrompt(e.target.value.slice(0, 800))}
                   placeholder="e.g., glossy white paint, crisp decals, realistic tires"
+                  maxLength={800}
                 />
+                {prompt.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {prompt.length}/800 characters
+                  </p>
+                )}
               </div>
 
               <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
@@ -344,14 +350,20 @@ export default function Create() {
                 <Label>Describe your model</Label>
                 <Input
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e) => setPrompt(e.target.value.slice(0, 800))}
                   placeholder="A detailed fantasy warrior miniature..."
+                  maxLength={800}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && prompt.trim()) {
                       handleTextPrompt(prompt)
                     }
                   }}
                 />
+                {prompt.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {prompt.length}/800 characters
+                  </p>
+                )}
               </div>
 
               <Button 

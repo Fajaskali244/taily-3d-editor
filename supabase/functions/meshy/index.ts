@@ -77,11 +77,18 @@ async function createTask(req: Request, body: any) {
     source === "multi-image" ? "multi-image-to-3d" :
     (body.refine ? "text-to-3d:refine" : "text-to-3d:preview");
 
+  // Validate prompt length (Meshy API limit: 800 chars)
+  let prompt = body.prompt;
+  if (prompt && prompt.length > 800) {
+    prompt = prompt.slice(0, 800);
+    console.log("[meshy] truncated prompt to 800 chars");
+  }
+
   const { data: row, error: rowErr } = await admin.from("generation_tasks").insert({
     user_id: uid,
     source,
     mode,
-    prompt: source === "text" ? body.prompt ?? null : null,
+    prompt: source === "text" ? prompt ?? null : null,
     input_image_urls: source === "image" ? [body.imageUrl] : (source === "multi-image" ? body.imageUrls : null),
     status: "PENDING",
   }).select().single();
@@ -99,7 +106,7 @@ async function createTask(req: Request, body: any) {
     endpoint = "https://api.meshy.ai/openapi/v2/text-to-3d";
     payload = body.refine
       ? { mode: "refine", preview_task_id: body.previewTaskId, enable_pbr: true }
-      : { mode: "preview", prompt: body.prompt, should_remesh: true };
+      : { mode: "preview", prompt, should_remesh: true };
   }
 
   const res = await fetch(endpoint, {

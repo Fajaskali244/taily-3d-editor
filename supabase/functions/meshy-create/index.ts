@@ -145,12 +145,19 @@ serve(async (req) => {
     console.log("[meshy-create] measured", measured);
     console.log("[meshy-create] usable", usable);
 
+    // Validate texture prompt length (Meshy API limit: 800 chars)
+    let texturePrompt = body.texturePrompt ?? undefined;
+    if (texturePrompt && texturePrompt.length > 800) {
+      texturePrompt = texturePrompt.slice(0, 800);
+      console.log("[meshy-create] truncated texture_prompt to 800 chars");
+    }
+
     const overrides = {
       target_polycount: body.polycount ?? preset.target_polycount,
       should_remesh:    body.should_remesh ?? preset.should_remesh,
       should_texture:   body.should_texture ?? preset.should_texture,
       enable_pbr:       body.enable_pbr ?? preset.enable_pbr,
-      texture_prompt:   body.texturePrompt ?? undefined,
+      texture_prompt:   texturePrompt,
     };
 
     // Insert tracking row
