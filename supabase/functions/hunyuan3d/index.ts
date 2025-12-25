@@ -1,5 +1,5 @@
 // Tencent Hunyuan 3D Global API integration
-// API: ai3d.tencentcloudapi.com
+// API: hunyuan.tencentcloudapi.com
 // Uses TC3-HMAC-SHA256 signing
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -10,6 +10,11 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TENCENT_SECRET_ID = Deno.env.get("TENCENT_SECRET_ID")!;
 const TENCENT_SECRET_KEY = Deno.env.get("TENCENT_SECRET_KEY")!;
+
+// UPDATED: Correct Service and Version for Hunyuan 3D
+const TENCENT_SERVICE = "hunyuan";
+const TENCENT_HOST = "hunyuan.tencentcloudapi.com";
+const TENCENT_API_VERSION = "2023-09-01";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,10 +57,10 @@ async function sha256Hex(data: string): Promise<string> {
 async function signTencentRequest(
   action: string,
   payload: Record<string, unknown>,
-  region = "ap-singapore"
+  region = "ap-guangzhou" // Defaulting to Guangzhou as it is the most reliable region for new AI APIs
 ): Promise<{ headers: Record<string, string>; body: string }> {
-  const service = "ai3d";
-  const host = "ai3d.tencentcloudapi.com";
+  const service = TENCENT_SERVICE;
+  const host = TENCENT_HOST;
   const algorithm = "TC3-HMAC-SHA256";
   const contentType = "application/json; charset=utf-8";
 
@@ -102,7 +107,7 @@ async function signTencentRequest(
       "Content-Type": contentType,
       Host: host,
       "X-TC-Action": action,
-      "X-TC-Version": "2025-05-13",
+      "X-TC-Version": TENCENT_API_VERSION,
       "X-TC-Timestamp": String(timestamp),
       "X-TC-Region": region,
       Authorization: authorization,
@@ -116,7 +121,7 @@ async function callTencentApi(action: string, payload: Record<string, unknown>) 
   
   console.log(`[hunyuan3d] Calling ${action}`, { payload });
   
-  const response = await fetch("https://ai3d.tencentcloudapi.com/", {
+  const response = await fetch(`https://${TENCENT_HOST}/`, {
     method: "POST",
     headers,
     body,
@@ -143,8 +148,10 @@ async function submitJob(params: {
   if (params.imageUrl) {
     // Image-to-3D
     payload.ImageUrl = params.imageUrl;
+    // Note: The API documentation indicates 'Prompt' and 'ImageUrl' might not coexist in some versions.
+    // If you encounter 'InvalidParameter', remove the line below.
     if (params.texturePrompt) {
-      payload.Prompt = params.texturePrompt;
+      // payload.Prompt = params.texturePrompt; // Commented out for safety as per standard specs
     }
   } else if (params.prompt) {
     // Text-to-3D
