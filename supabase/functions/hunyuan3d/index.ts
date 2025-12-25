@@ -102,7 +102,7 @@ async function signTencentRequest(
       "Content-Type": contentType,
       Host: host,
       "X-TC-Action": action,
-      "X-TC-Version": "2024-06-23",
+      "X-TC-Version": "2025-05-13",
       "X-TC-Timestamp": String(timestamp),
       "X-TC-Region": region,
       Authorization: authorization,
