@@ -1,5 +1,5 @@
 // Tencent Hunyuan 3D Global API integration
-// API: ai3d.tencentcloudapi.com (Global/International endpoint)
+// API: hunyuan.intl.tencentcloudapi.com
 // Uses TC3-HMAC-SHA256 signing
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -11,13 +11,13 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TENCENT_SECRET_ID = Deno.env.get("TENCENT_SECRET_ID")!;
 const TENCENT_SECRET_KEY = Deno.env.get("TENCENT_SECRET_KEY")!;
 
-// Global/International endpoint configuration for Hunyuan 3D
-// For international users: use ai3d.tencentcloudapi.com with ap-singapore
-// For mainland China users: use hunyuan.tencentcloudapi.com with ap-beijing
-const TENCENT_SERVICE = "ai3d";
-const TENCENT_HOST = "ai3d.tencentcloudapi.com";
-const TENCENT_API_VERSION = "2024-06-23";
-const TENCENT_REGION = "ap-singapore";
+// --- CONFIGURATION ---
+// MUST use 'hunyuan' service and '2023-09-01' version for the ProJob actions.
+// MUST use 'hunyuan.intl.tencentcloudapi.com' for the host if outside mainland China.
+const TENCENT_SERVICE = "hunyuan";
+const TENCENT_HOST = "hunyuan.intl.tencentcloudapi.com";
+const TENCENT_API_VERSION = "2023-09-01";
+const TENCENT_REGION = "ap-singapore"; 
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +62,7 @@ async function signTencentRequest(
   payload: Record<string, unknown>,
   region = TENCENT_REGION
 ): Promise<{ headers: Record<string, string>; body: string }> {
+  // Hardcoded to ensure we never accidentally use 'ai3d'
   const service = TENCENT_SERVICE;
   const host = TENCENT_HOST;
   const algorithm = "TC3-HMAC-SHA256";
@@ -122,7 +123,7 @@ async function signTencentRequest(
 async function callTencentApi(action: string, payload: Record<string, unknown>) {
   const { headers, body } = await signTencentRequest(action, payload);
   
-  console.log(`[hunyuan3d] Calling ${action}`, { payload });
+  console.log(`[hunyuan3d] Calling ${action} on ${TENCENT_HOST} (Version: ${TENCENT_API_VERSION})`);
   
   const response = await fetch(`https://${TENCENT_HOST}/`, {
     method: "POST",
@@ -151,11 +152,8 @@ async function submitJob(params: {
   if (params.imageUrl) {
     // Image-to-3D
     payload.ImageUrl = params.imageUrl;
-    // Note: The API documentation indicates 'Prompt' and 'ImageUrl' might not coexist in some versions.
-    // If you encounter 'InvalidParameter', remove the line below.
-    if (params.texturePrompt) {
-      // payload.Prompt = params.texturePrompt; // Commented out for safety as per standard specs
-    }
+    // CRITICAL: For 2023-09-01, 'Prompt' and 'ImageUrl' cannot coexist.
+    // If we have an image, we MUST NOT send 'Prompt'.
   } else if (params.prompt) {
     // Text-to-3D
     payload.Prompt = params.prompt;
@@ -237,6 +235,9 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
 
+    // Log startup to verify new code is running
+    console.log(`[hunyuan3d] Handling action: ${action} for user: ${userId} (Using Hunyuan International Config)`);
+
     // ===== CREATE: Submit new generation job =====
     if (action === "create") {
       const source = body.imageUrl ? "image" : body.prompt ? "text" : null;
@@ -289,7 +290,7 @@ serve(async (req) => {
           })
           .eq("id", taskRow.id);
 
-        console.log("[hunyuan3d] Job created:", { id: taskRow.id, jobId });
+        console.log("[hunyuan3d] Job created successfully:", { id: taskRow.id, jobId });
         return j({ id: taskRow.id, jobId }, 201);
       } catch (e) {
         console.error("[hunyuan3d] Submit error:", e);
