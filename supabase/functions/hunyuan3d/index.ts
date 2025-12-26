@@ -1,5 +1,5 @@
 // Tencent Hunyuan 3D Global API integration
-// API: hunyuan.tencentcloudapi.com
+// API: ai3d.tencentcloudapi.com (Global/International endpoint)
 // Uses TC3-HMAC-SHA256 signing
 
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
@@ -11,10 +11,13 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TENCENT_SECRET_ID = Deno.env.get("TENCENT_SECRET_ID")!;
 const TENCENT_SECRET_KEY = Deno.env.get("TENCENT_SECRET_KEY")!;
 
-// UPDATED: Correct Service and Version for Hunyuan 3D
-const TENCENT_SERVICE = "hunyuan";
-const TENCENT_HOST = "hunyuan.tencentcloudapi.com";
-const TENCENT_API_VERSION = "2023-09-01";
+// Global/International endpoint configuration for Hunyuan 3D
+// For international users: use ai3d.tencentcloudapi.com with ap-singapore
+// For mainland China users: use hunyuan.tencentcloudapi.com with ap-beijing
+const TENCENT_SERVICE = "ai3d";
+const TENCENT_HOST = "ai3d.tencentcloudapi.com";
+const TENCENT_API_VERSION = "2024-06-23";
+const TENCENT_REGION = "ap-singapore";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +60,7 @@ async function sha256Hex(data: string): Promise<string> {
 async function signTencentRequest(
   action: string,
   payload: Record<string, unknown>,
-  region = "ap-guangzhou" // Defaulting to Guangzhou as it is the most reliable region for new AI APIs
+  region = TENCENT_REGION
 ): Promise<{ headers: Record<string, string>; body: string }> {
   const service = TENCENT_SERVICE;
   const host = TENCENT_HOST;
