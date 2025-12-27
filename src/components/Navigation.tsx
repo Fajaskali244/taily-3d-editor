@@ -6,10 +6,9 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
-import { User, Palette, LogOut, Sparkles } from 'lucide-react'
+import { User, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
-import lumoLogo from '@/assets/lumo-logo.png'
 
 const Navigation = () => {
   const { user, signOut } = useAuth()
@@ -34,39 +33,55 @@ const Navigation = () => {
   }
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-b z-50">
+    <nav className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-b border-border z-50">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-2"
+            className="flex items-center gap-1"
           >
-            <img src={lumoLogo} alt="Lumo" className="h-6" />
+            <span className="text-xl font-bold">
+              <span className="text-red-500">L</span>
+              <span className="text-blue-500">U</span>
+              <span className="text-yellow-500">M</span>
+              <span className="text-teal-500">O</span>
+            </span>
           </button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/create')}
-          >
-            <Sparkles className="h-4 w-4 mr-2" />
-            Create
-          </Button>
-          {user && (
+          <div className="hidden md:flex items-center gap-4">
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate('/my-designs')}
+              className="text-foreground hover:text-primary"
+              onClick={() => navigate('/create')}
             >
-              <Palette className="h-4 w-4 mr-2" />
-              My Designs
+              Cara Kerja
             </Button>
-          )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-foreground hover:text-primary"
+              onClick={() => navigate('/catalog')}
+            >
+              Galeri
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-foreground hover:text-primary"
+            >
+              Tentang Kami
+            </Button>
+          </div>
         </div>
-
         <div className="flex items-center gap-2">
           {!user ? (
-            <Button onClick={() => navigate('/auth')} variant="outline" size="sm">
-              Sign In
+            <Button 
+              onClick={() => navigate('/auth')} 
+              variant="outline" 
+              size="sm"
+              className="rounded-full border-2 border-primary text-primary hover:bg-primary hover:text-white"
+            >
+              Login / Daftar
             </Button>
           ) : (
             <DropdownMenu>

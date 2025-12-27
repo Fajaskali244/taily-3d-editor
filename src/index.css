@@ -2,101 +2,133 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Lumo Brand System - Purple to Blue gradient palette */
+/* Lumo Brand System - Cream & Navy playful theme */
 
 :root {
-  /* Lumo brand core */
-  --brand-bg:       #0b0d17;      /* deep black/indigo */
-  --brand-surface:  #11152a;
-  --brand-purple:   #7b5cfa;      /* Lumo left stop */
-  --brand-blue:     #4f7dff;      /* Lumo right stop */
-  --brand-accent:   #9aa7ff;      /* hover/outline */
-  --brand-text:     #ffffff;
-  --brand-muted:    #cbd5e1;
+  /* Lumo brand core - Updated for cream theme */
+  --brand-bg:       #f5edd6;      /* cream/beige */
+  --brand-surface:  #ffffff;
+  --brand-navy:     #1e3a5f;      /* navy blue for text/buttons */
+  --brand-teal:     #2d8a8a;      /* teal accent */
+  --brand-coral:    #e8734a;      /* coral/orange for CTA */
+  --brand-pink:     #f5a5b8;      /* soft pink */
+  --brand-mint:     #a8d5ba;      /* mint green */
+  --brand-text:     #1e3a5f;      /* navy text */
+  --brand-muted:    #6b7b8f;
 
   /* Component roles */
-  --color-primary:  var(--brand-purple);
-  --color-primary-2:var(--brand-blue);
+  --color-primary:  var(--brand-navy);
+  --color-primary-2:var(--brand-teal);
   --color-bg:       var(--brand-bg);
   --color-surface:  var(--brand-surface);
   --color-text:     var(--brand-text);
-  --color-muted:    color-mix(in oklab, var(--brand-text) 70%, transparent);
+  --color-muted:    var(--brand-muted);
+  --color-cta:      var(--brand-coral);
 }
 
 .page-gradient {
-  background:
-    radial-gradient(1000px 600px at 10% -10%, rgba(255,255,255,0.05), transparent),
-    linear-gradient(180deg, #0b0d17 0%, #16193a 40%, #1f2f6e 70%, #223f88 100%);
+  background: var(--brand-bg);
   color: var(--color-text);
+}
+
+.lumo-hero-bg {
+  background: var(--brand-bg);
 }
 
 /* Generic card & button helpers */
 .card-surface {
-  background: color-mix(in oklab, var(--color-surface) 85%, transparent);
-  border: 1px solid color-mix(in oklab, white 12%, transparent);
-  backdrop-filter: blur(6px);
+  background: var(--color-surface);
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-2));
+  background: var(--color-cta);
   color: #fff;
+  border-radius: 9999px;
+  font-weight: 600;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.1);
+}
+
+/* Gallery card styles */
+.gallery-card {
+  background: var(--brand-pink);
+  border-radius: 1rem;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+}
+
+.gallery-card:hover {
+  transform: translateY(-4px);
+}
+
+.gallery-card.mint {
+  background: var(--brand-mint);
+}
+
+.gallery-card.teal {
+  background: #8fd3d3;
+}
+
+/* Style tag pills */
+.style-pill {
+  background: var(--brand-surface);
+  border: 2px solid #e0e0e0;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  color: var(--brand-navy);
+  transition: all 0.2s ease;
+}
+
+.style-pill:hover,
+.style-pill.active {
+  border-color: var(--brand-navy);
+  background: var(--brand-navy);
+  color: white;
 }
 
 
 @layer base {
   :root {
-    /* LUMO brand colors - Purple to Blue gradient */
-    --gradient-start: 260 80% 60%; /* Purple */
-    --gradient-end: 200 90% 65%;   /* Light Blue */
+    /* LUMO brand colors - Cream & Navy playful theme */
+    --gradient-start: 210 50% 25%; /* Navy */
+    --gradient-end: 175 50% 40%;   /* Teal */
     --gradient-primary: linear-gradient(135deg, hsl(var(--gradient-start)), hsl(var(--gradient-end)));
     --gradient-secondary: linear-gradient(180deg, hsl(var(--gradient-start) / 0.1), hsl(var(--gradient-end) / 0.1));
     
-    /* Masculine theme colors */
-    --masculine-gradient-start: 220 20% 15%; /* Charcoal */
-    --masculine-gradient-end: 215 50% 25%;   /* Navy */
-    --masculine-accent: 200 100% 65%;        /* Electric blue */
-    --masculine-gradient-primary: linear-gradient(135deg, hsl(var(--masculine-gradient-start)), hsl(var(--masculine-gradient-end)));
-    --masculine-gradient-secondary: linear-gradient(180deg, hsl(var(--masculine-gradient-start) / 0.1), hsl(var(--masculine-gradient-end) / 0.1));
-    
-    --background: 0 0% 5%;
-    --foreground: 0 0% 98%;
+    --background: 45 45% 92%; /* Cream */
+    --foreground: 210 50% 25%; /* Navy text */
 
-    --card: 0 0% 8%;
-    --card-foreground: 0 0% 95%;
+    --card: 0 0% 100%;
+    --card-foreground: 210 50% 25%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 50% 25%;
 
-    --primary: 260 80% 60%; /* LUMO Purple */
+    --primary: 210 50% 25%; /* Navy */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 200 90% 65%; /* LUMO Blue */
+    --secondary: 175 50% 40%; /* Teal */
     --secondary-foreground: 0 0% 100%;
-    
-    /* Masculine primary colors */
-    --masculine-primary: 200 100% 65%; /* Electric blue */
-    --masculine-primary-foreground: 0 0% 100%;
-    --masculine-secondary: 220 20% 25%; /* Dark charcoal */
-    --masculine-secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 45 20% 85%;
+    --muted-foreground: 210 20% 45%;
 
-    --accent: 200 90% 65%;
-    --accent-foreground: 0 0% 5%;
+    --accent: 16 80% 60%; /* Coral/Orange CTA */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 260 80% 60%;
+    --border: 210 20% 80%;
+    --input: 210 20% 90%;
+    --ring: 210 50% 25%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
 
