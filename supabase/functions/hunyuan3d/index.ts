@@ -12,12 +12,10 @@ const TENCENT_SECRET_ID = Deno.env.get("TENCENT_SECRET_ID")!;
 const TENCENT_SECRET_KEY = Deno.env.get("TENCENT_SECRET_KEY")!;
 
 // --- CONFIGURATION ---
-// MUST use 'hunyuan' service and '2023-09-01' version for the ProJob actions.
-// MUST use 'hunyuan.intl.tencentcloudapi.com' for the host if outside mainland China.
 const TENCENT_SERVICE = "hunyuan";
 const TENCENT_HOST = "hunyuan.intl.tencentcloudapi.com";
 const TENCENT_API_VERSION = "2023-09-01";
-const TENCENT_REGION = "ap-singapore"; 
+const TENCENT_REGION = "ap-singapore";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,7 +60,6 @@ async function signTencentRequest(
   payload: Record<string, unknown>,
   region = TENCENT_REGION
 ): Promise<{ headers: Record<string, string>; body: string }> {
-  // Hardcoded to ensure we never accidentally use 'ai3d'
   const service = TENCENT_SERVICE;
   const host = TENCENT_HOST;
   const algorithm = "TC3-HMAC-SHA256";
@@ -123,8 +120,6 @@ async function signTencentRequest(
 async function callTencentApi(action: string, payload: Record<string, unknown>) {
   const { headers, body } = await signTencentRequest(action, payload);
   
-  console.log(`[hunyuan3d] Calling ${action} on ${TENCENT_HOST} (Version: ${TENCENT_API_VERSION})`);
-  
   const response = await fetch(`https://${TENCENT_HOST}/`, {
     method: "POST",
     headers,
@@ -150,12 +145,8 @@ async function submitJob(params: {
   const payload: Record<string, unknown> = {};
 
   if (params.imageUrl) {
-    // Image-to-3D
     payload.ImageUrl = params.imageUrl;
-    // CRITICAL: For 2023-09-01, 'Prompt' and 'ImageUrl' cannot coexist.
-    // If we have an image, we MUST NOT send 'Prompt'.
   } else if (params.prompt) {
-    // Text-to-3D
     payload.Prompt = params.prompt;
   } else {
     throw new Error("Either imageUrl or prompt is required");
@@ -166,8 +157,6 @@ async function submitJob(params: {
   if (!response.JobId) {
     throw new Error("No JobId returned from Hunyuan API");
   }
-
-  console.log(`[hunyuan3d] Job submitted:`, response.JobId);
   return response.JobId;
 }
 
@@ -180,25 +169,44 @@ async function queryJob(jobId: string): Promise<{
   errorMessage?: string;
 }> {
   const response = await callTencentApi("QueryHunyuanTo3DProJob", { JobId: jobId });
+  
+  // LOGGING: Explicitly log the full response to help debug extraction issues
+  console.log(`[hunyuan3d] DEBUG RESPONSE for ${jobId}:`, JSON.stringify(response, null, 2));
 
   const status = response.Status as "WAIT" | "RUN" | "DONE" | "FAIL";
   
   let glbUrl: string | undefined;
   let thumbnailUrl: string | undefined;
 
-  if (status === "DONE" && response.ResultFile3Ds?.length > 0) {
-    // Extract GLB URL from results
-    for (const file of response.ResultFile3Ds) {
-      if (file.FileUrl?.toLowerCase().endsWith(".glb")) {
-        glbUrl = file.FileUrl;
+  // UPDATED: Aggressive Extraction Logic
+  if (status === "DONE") {
+    const files = response.ResultFile3Ds || [];
+    
+    // Strategy 1: Look for specific 'glb' type
+    for (const file of files) {
+      // Normalize keys just in case
+      const url = file.Url || file.FileUrl || file.DownloadUrl || file.Address;
+      if (!url) continue;
+
+      if (file.Type?.toLowerCase().includes("glb") || url.toLowerCase().includes(".glb")) {
+        glbUrl = url;
+        thumbnailUrl = file.PreviewImageUrl || file.ResultImage || file.ThumbnailUrl;
+        break; // Found it
       }
     }
-    // If no explicit GLB, use first result
-    if (!glbUrl && response.ResultFile3Ds[0]?.FileUrl) {
-      glbUrl = response.ResultFile3Ds[0].FileUrl;
+
+    // Strategy 2: If no GLB found, just take the FIRST file that has a URL
+    if (!glbUrl && files.length > 0) {
+      console.warn("[hunyuan3d] No explicit GLB found, using first file.");
+      const first = files[0];
+      glbUrl = first.Url || first.FileUrl || first.DownloadUrl || first.Address;
+      thumbnailUrl = first.PreviewImageUrl || first.ResultImage || first.ThumbnailUrl;
     }
-    // Thumbnail if available
-    thumbnailUrl = response.ResultImage?.FileUrl;
+
+    // Strategy 3: Check for root level images if missing
+    if (!thumbnailUrl && response.ResultImage?.FileUrl) {
+      thumbnailUrl = response.ResultImage.FileUrl;
+    }
   }
 
   return {
@@ -224,7 +232,6 @@ serve(async (req) => {
       auth: { persistSession: false },
     });
 
-    // Extract user from JWT
     const jwt = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
     if (!jwt) return j({ error: "invalid authorization" }, 401);
 
@@ -235,23 +242,16 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action;
 
-    // Log startup to verify new code is running
-    console.log(`[hunyuan3d] Handling action: ${action} for user: ${userId} (Using Hunyuan International Config)`);
-
-    // ===== CREATE: Submit new generation job =====
+    // ===== CREATE =====
     if (action === "create") {
       const source = body.imageUrl ? "image" : body.prompt ? "text" : null;
-      if (!source) {
-        return j({ error: "Either imageUrl or prompt is required" }, 400);
-      }
+      if (!source) return j({ error: "Either imageUrl or prompt is required" }, 400);
 
-      // Truncate prompts to safe length
       let prompt = body.prompt;
       let texturePrompt = body.texturePrompt;
       if (prompt && prompt.length > 500) prompt = prompt.slice(0, 500);
       if (texturePrompt && texturePrompt.length > 500) texturePrompt = texturePrompt.slice(0, 500);
 
-      // Insert task row
       const { data: taskRow, error: insErr } = await supabaseAdmin
         .from("generation_tasks")
         .insert({
@@ -267,33 +267,22 @@ serve(async (req) => {
         .select("id")
         .single();
 
-      if (insErr || !taskRow) {
-        console.error("[hunyuan3d] db insert error:", insErr);
-        return j({ error: `db insert: ${insErr?.message}` }, 500);
-      }
+      if (insErr || !taskRow) return j({ error: `db insert: ${insErr?.message}` }, 500);
 
-      // Submit to Hunyuan API
       try {
-        const jobId = await submitJob({
-          imageUrl: body.imageUrl,
-          prompt,
-          texturePrompt,
-        });
+        const jobId = await submitJob({ imageUrl: body.imageUrl, prompt, texturePrompt });
 
-        // Update task with provider job ID
         await supabaseAdmin
           .from("generation_tasks")
           .update({
-            meshy_task_id: jobId, // Reusing existing column for provider job ID
+            meshy_task_id: jobId,
             status: "IN_PROGRESS",
             started_at: new Date().toISOString(),
           })
           .eq("id", taskRow.id);
 
-        console.log("[hunyuan3d] Job created successfully:", { id: taskRow.id, jobId });
         return j({ id: taskRow.id, jobId }, 201);
       } catch (e) {
-        console.error("[hunyuan3d] Submit error:", e);
         await supabaseAdmin
           .from("generation_tasks")
           .update({
@@ -306,7 +295,7 @@ serve(async (req) => {
       }
     }
 
-    // ===== STATUS: Poll job status =====
+    // ===== STATUS =====
     if (action === "status" && body.id) {
       const { data: task, error: taskErr } = await supabaseAdmin
         .from("generation_tasks")
@@ -314,20 +303,14 @@ serve(async (req) => {
         .eq("id", body.id)
         .single();
 
-      if (taskErr || !task) {
-        return j({ error: "task not found" }, 404);
-      }
+      if (taskErr || !task) return j({ error: "task not found" }, 404);
 
-      // If already finished, return cached result
       if (task.status === "SUCCEEDED" || task.status === "FAILED" || task.status === "DELETED") {
         return j(task);
       }
 
-      // Poll Hunyuan API
       const jobId = task.meshy_task_id;
-      if (!jobId) {
-        return j({ error: "no job id for task" }, 400);
-      }
+      if (!jobId) return j({ error: "no job id for task" }, 400);
 
       try {
         const result = await queryJob(jobId);
@@ -338,49 +321,63 @@ serve(async (req) => {
 
         if (result.status === "DONE") {
           updates.status = "SUCCEEDED";
-          updates.model_glb_url = result.glbUrl ?? null;
-          updates.thumbnail_url = result.thumbnailUrl ?? null;
           updates.finished_at = new Date().toISOString();
           updates.progress = 100;
+          
+          let finalModelUrl = result.glbUrl;
 
-          // Mirror GLB to storage
-          if (result.glbUrl) {
+          if (!finalModelUrl) {
+            console.error("[hunyuan3d] CRITICAL: Job DONE but extracted URL is empty. Check logs for response structure.");
+          }
+
+          // Mirror GLB to storage if possible
+          if (finalModelUrl) {
             try {
-              const bucket = "design-files";
+              const bucket = "design-files"; 
               const path = `${task.user_id}/${task.id}.glb`;
-              const res = await fetch(result.glbUrl);
+              
+              const res = await fetch(finalModelUrl);
               if (res.ok) {
                 const bytes = new Uint8Array(await res.arrayBuffer());
-                await supabaseAdmin.storage.from(bucket).upload(path, bytes, {
+                const { error: uploadErr } = await supabaseAdmin.storage.from(bucket).upload(path, bytes, {
                   contentType: "model/gltf-binary",
                   upsert: true,
                 });
-                const publicUrl = supabaseAdmin.storage.from(bucket).getPublicUrl(path).data.publicUrl;
-                updates.model_glb_url = publicUrl;
+                
+                if (!uploadErr) {
+                  const publicData = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
+                  finalModelUrl = publicData.data.publicUrl;
+                } else {
+                  console.error("[hunyuan3d] Storage upload failed, using original URL:", uploadErr);
+                }
               }
             } catch (e) {
-              console.error("[hunyuan3d] Mirror failed:", e);
+              console.error("[hunyuan3d] Mirror failed, using original URL:", e);
             }
           }
 
-          // Upsert design
-          await supabaseAdmin.from("designs").upsert(
-            {
-              user_id: task.user_id,
-              generation_task_id: task.id,
-              chosen_glb_url: updates.model_glb_url as string,
-              chosen_thumbnail_url: updates.thumbnail_url as string,
-              name: `Model ${new Date().toLocaleDateString()}`,
-              created_at: new Date().toISOString(),
-            },
-            { onConflict: "generation_task_id" }
-          );
+          updates.model_glb_url = finalModelUrl ?? null;
+          updates.thumbnail_url = result.thumbnailUrl ?? null;
+
+          // Upsert design automatically if we have a model
+          if (finalModelUrl) {
+            await supabaseAdmin.from("designs").upsert(
+              {
+                user_id: task.user_id,
+                generation_task_id: task.id,
+                chosen_glb_url: finalModelUrl,
+                chosen_thumbnail_url: result.thumbnailUrl ?? null,
+                name: `Model ${new Date().toLocaleDateString()}`,
+                created_at: new Date().toISOString(),
+              },
+              { onConflict: "generation_task_id" }
+            );
+          }
         } else if (result.status === "FAIL") {
           updates.status = "FAILED";
           updates.error = { message: result.errorMessage ?? "Generation failed" };
           updates.finished_at = new Date().toISOString();
         } else {
-          // WAIT or RUN
           updates.status = "IN_PROGRESS";
         }
 
