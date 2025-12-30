@@ -1,161 +1,182 @@
-import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '@/hooks/useAuth'
-import MeshyModelPreview from '@/components/MeshyModelPreview'
-import { GenerationProgress } from '@/components/GenerationProgress'
-import Navigation from '@/components/Navigation'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/integrations/supabase/client'
-
-interface Task {
-  id: string
-  status: string
-  model_glb_url?: string
-  user_id: string
-}
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { useTaskPoller } from "@/hooks/useTaskPoller";
+import { GenerationProgress } from "@/components/GenerationProgress";
+import ModelViewer from "@/components/ModelViewer";
+import Navigation from "@/components/Navigation";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export default function Review() {
-  const { taskId: raw } = useParams()
-  const normalizedTaskId = (raw ?? '').replace(/^:/, '')
-  const nav = useNavigate()
-  const { toast } = useToast()
-  const { user } = useAuth()
-  const [task, setTask] = useState<Task | null>(null)
-  const [approving, setApproving] = useState(false)
-  const [glbUrl, setGlbUrl] = useState<string | undefined>(undefined)
+export default function ReviewPage() {
+  const { taskId: raw } = useParams<{ taskId: string }>();
+  const taskId = (raw ?? '').replace(/^:/, '');
+  const navigate = useNavigate();
+  const [isApproving, setIsApproving] = useState(false);
 
-  if (!UUID_RE.test(normalizedTaskId)) {
+  const { task, isPolling } = useTaskPoller(UUID_RE.test(taskId) ? taskId : undefined);
+
+  const handleApprove = async () => {
+    if (!task?.id || !task.model_glb_url) return;
+
+    setIsApproving(true);
+    try {
+      const { error } = await supabase.from("designs").upsert(
+        {
+          user_id: task.user_id,
+          generation_task_id: task.id,
+          chosen_glb_url: task.model_glb_url,
+          chosen_thumbnail_url: task.thumbnail_url,
+          name: `Model ${new Date().toLocaleDateString()}`,
+        },
+        { onConflict: "generation_task_id" }
+      );
+
+      if (error) throw error;
+
+      toast.success("Model approved for printing!");
+      navigate("/my-designs");
+    } catch (error) {
+      toast.error(
+        `Failed to approve model: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  // Invalid task ID
+  if (!UUID_RE.test(taskId)) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="max-w-5xl mx-auto p-6 pt-24">
-          <div className="border rounded-lg p-6 text-center">
-            <h1 className="text-2xl font-bold">Invalid task ID</h1>
-            <p className="text-muted-foreground mt-2">Please start a new generation.</p>
-            <Button className="mt-4" onClick={() => nav('/create')}>Back to Create</Button>
-          </div>
+        <div className="max-w-5xl mx-auto p-6 pt-24 flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader>
+              <CardTitle>Invalid task ID</CardTitle>
+              <CardDescription>Please start a new generation.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/create")}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Create
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-    )
+    );
   }
-  async function handleApprove() {
-    if (!task?.model_glb_url) return
 
-    setApproving(true)
-    try {
-      // Create or update design with the generated GLB
-      const { data: design, error: designError } = await supabase
-        .from('designs')
-        .insert({
-          user_id: task.user_id,
-          name: 'AI Generated Model',
-          params: { source: 'meshy', task_id: task.id },
-          preview_url: task.model_glb_url,
-          is_published: true
-        })
-        .select()
-        .single()
-
-      if (designError) throw designError
-
-      // Log approval event
-      await supabase.from('events_analytics').insert({
-        event: 'approve_for_print',
-        user_id: task.user_id,
-        design_id: design.id,
-        props: { task_id: task.id }
-      })
-
-      toast({
-        title: 'Model approved!',
-        description: 'Your 3D model has been saved to your designs.'
-      })
-
-      nav('/my-designs')
-    } catch (error) {
-      console.error('Approval error:', error)
-      toast({
-        title: 'Approval failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive'
-      })
-    } finally {
-      setApproving(false)
-    }
+  // Loading state
+  if (isPolling && !task) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
   }
+
+  // Task not found
+  if (!task) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <div className="max-w-5xl mx-auto p-6 pt-24 flex flex-col items-center justify-center">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader>
+              <CardTitle>Task not found</CardTitle>
+              <CardDescription>The generation task could not be found.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={() => navigate("/create")}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Create
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const isSucceeded = task.status === "SUCCEEDED";
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="max-w-5xl mx-auto p-6 pt-24 space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Review your 3D model</h1>
+          <h1 className="text-3xl font-bold text-foreground">Review your 3D model</h1>
           <p className="text-muted-foreground mt-2">
             Wait for generation to complete, then approve for printing
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="border rounded-lg p-4">
-              <h2 className="font-semibold mb-4">Generation Progress</h2>
-              {normalizedTaskId && (
-                <GenerationProgress 
-                  taskId={normalizedTaskId} 
-                  onSignedGlb={(url) => setGlbUrl(url)}
-                />
-              )}
-            </div>
-            
-            {task?.status === 'FAILED' && (
-              <div className="border border-destructive rounded-lg p-4 bg-destructive/10">
-                <h3 className="font-semibold text-destructive">Generation Failed</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Something went wrong during generation. Please try again.
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="mt-3"
-                  onClick={() => nav('/create')}
-                >
-                  Try Again
-                </Button>
-              </div>
-            )}
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Generation Progress</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <GenerationProgress taskId={taskId} />
+            </CardContent>
+          </Card>
 
-          <div>
-            <MeshyModelPreview glbUrl={glbUrl || task?.model_glb_url} />
-          </div>
+          <Card>
+            <CardContent className="p-4">
+              {isSucceeded && task.model_glb_url ? (
+                <ModelViewer glbUrl={task.model_glb_url} />
+              ) : (
+                <div className="aspect-square rounded-xl bg-muted/30 flex items-center justify-center">
+                  <p className="text-muted-foreground text-center px-4">
+                    3D preview will appear here after generation
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div className="flex gap-3 pt-4">
           <Button
-            disabled={!task?.model_glb_url || approving}
-            onClick={handleApprove}
             size="lg"
+            disabled={!isSucceeded || !task.model_glb_url || isApproving}
+            onClick={handleApprove}
           >
-            {approving ? 'Approving...' : 'Approve for Print'}
+            {isApproving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="mr-2 h-4 w-4" />
+            )}
+            Approve for Print
           </Button>
-          
+
           <Button
             variant="outline"
             size="lg"
-            onClick={() => nav('/create')}
+            onClick={() => navigate("/create")}
           >
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Create New Model
           </Button>
         </div>
-
-        {!task?.model_glb_url && task?.status !== 'FAILED' && (
-          <p className="text-sm text-muted-foreground text-center">
-            Your model will appear above once generation is complete
-          </p>
-        )}
       </div>
     </div>
-  )
+  );
 }
