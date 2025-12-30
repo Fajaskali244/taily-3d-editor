@@ -1,85 +1,54 @@
-import { useEffect, useState } from 'react'
-import { Progress } from '@/components/ui/progress'
-import { fetchTask } from '@/lib/genTasks'
+import { Progress } from "@/components/ui/progress";
+import { Json } from "@/integrations/supabase/types";
 
 interface GenerationTask {
-  id: string
-  status: string
-  progress?: number
-  thumbnail_url?: string
-  storage_glb_signed_url?: string
-  error?: any
+  status: string;
+  progress?: number | null;
+  thumbnail_url?: string | null;
+  error?: Json | null;
 }
 
-export function GenerationProgress({ 
-  taskId, 
-  onSignedGlb 
-}: { 
-  taskId: string
-  onSignedGlb?: (url?: string) => void 
-}) {
-  const [task, setTask] = useState<GenerationTask | null>(null)
+interface GenerationProgressProps {
+  task: GenerationTask;
+}
 
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-
-    const pollTask = async () => {
-      try {
-        const data = await fetchTask(taskId)
-        setTask(data)
-        
-        if (data.storage_glb_signed_url && onSignedGlb) {
-          onSignedGlb(data.storage_glb_signed_url)
-        }
-        
-        if (['SUCCEEDED', 'FAILED', 'DELETED'].includes(data.status)) {
-          clearInterval(interval)
-        }
-      } catch (error) {
-        console.error('Failed to poll task:', error)
-      }
-    }
-
-    pollTask()
-    interval = setInterval(pollTask, 2500)
-    return () => clearInterval(interval)
-  }, [taskId, onSignedGlb])
-
-  if (!task) {
-    return (
-      <div className="flex items-center gap-3">
-        <div className="w-20 h-20 rounded bg-muted animate-pulse" />
-        <div className="grow space-y-2">
-          <div className="h-4 bg-muted rounded animate-pulse w-32" />
-          <div className="h-2 bg-muted rounded animate-pulse" />
-        </div>
-      </div>
-    )
-  }
+export function GenerationProgress({ task }: GenerationProgressProps) {
+  const progressPercentage = task.progress ?? 0;
 
   return (
-    <div className="flex items-center gap-3 text-sm">
-      <div className="w-20 h-20 rounded bg-muted overflow-hidden border">
-        {task.thumbnail_url && (
-          <img 
-            src={task.thumbnail_url} 
-            alt="Preview" 
-            className="w-full h-full object-cover" 
-          />
-        )}
-      </div>
-      <div className="grow space-y-2">
-        <div className="font-medium">
-          {task.status}
-          {task.progress !== undefined && ` · ${task.progress}%`}
+    <div className="space-y-4">
+      <div className="flex items-start gap-4">
+        <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+          {task.thumbnail_url ? (
+            <img
+              src={task.thumbnail_url}
+              alt="Generation thumbnail"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-muted animate-pulse" />
+          )}
         </div>
-        <Progress value={task.progress ?? 0} className="h-2" />
-        {task.status === 'FAILED' && task.error && (
-          <p className="text-sm text-destructive">
-            Generation failed. Please try again.
-          </p>
-        )}
+
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-foreground">
+              {task.status}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {progressPercentage}%
+            </span>
+          </div>
+
+          <Progress value={progressPercentage} className="h-2" />
+        </div>
       </div>
+
+      {task.error && (
+        <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+          Error: {typeof task.error === 'object' ? JSON.stringify(task.error) : String(task.error)}
+        </div>
+      )}
     </div>
-  )
+  );
 }

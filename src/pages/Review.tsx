@@ -134,7 +134,7 @@ export default function ReviewPage() {
               <CardTitle>Generation Progress</CardTitle>
             </CardHeader>
             <CardContent>
-              <GenerationProgress taskId={taskId} />
+              <GenerationProgress task={task} />
             </CardContent>
           </Card>
 
