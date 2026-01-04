@@ -7,6 +7,7 @@ interface ErrorBoundaryState {
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -15,16 +16,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(err: any): ErrorBoundaryState {
+  static getDerivedStateFromError(err: unknown): ErrorBoundaryState {
     return { hasError: true, msg: String(err) };
   }
 
-  componentDidCatch(err: any, info: any) {
-    console.error('Customize error:', err, info);
+  componentDidCatch(err: unknown, info: unknown) {
+    console.error('ErrorBoundary caught:', err, info);
   }
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="p-6 text-center max-w-md">
