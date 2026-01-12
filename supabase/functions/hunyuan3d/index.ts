@@ -405,6 +405,80 @@ serve(async (req) => {
       }
     }
 
+    // ===== RE-MIRROR (fix broken URLs) =====
+    if (action === "re-mirror" && body.id) {
+      const { data: task, error: taskErr } = await supabaseAdmin
+        .from("generation_tasks")
+        .select("*")
+        .eq("id", body.id)
+        .single();
+
+      if (taskErr || !task) return j({ error: "task not found" }, 404);
+      
+      // Verify ownership
+      if (task.user_id !== userId) return j({ error: "unauthorized" }, 403);
+
+      const jobId = task.meshy_task_id;
+      if (!jobId) return j({ error: "no job id for task" }, 400);
+
+      try {
+        console.log(`[hunyuan3d] Re-mirroring task ${body.id}, querying Tencent for fresh URLs...`);
+        const result = await queryJob(jobId);
+
+        if (result.status !== "DONE" || !result.glbUrl) {
+          return j({ error: "Job not complete or no GLB URL available", status: result.status }, 400);
+        }
+
+        const bucketName = "design-files";
+        const filePath = `${task.id}/model.glb`;
+
+        console.log(`[hunyuan3d] Fetching GLB from: ${result.glbUrl}`);
+        const res = await fetch(result.glbUrl);
+
+        if (!res.ok) {
+          return j({ error: `Failed to fetch GLB: ${res.status} ${res.statusText}` }, 502);
+        }
+
+        const fileBuffer = new Uint8Array(await res.arrayBuffer());
+        console.log(`[hunyuan3d] Downloaded ${fileBuffer.length} bytes, uploading to ${bucketName}/${filePath}`);
+
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from(bucketName)
+          .upload(filePath, fileBuffer, {
+            contentType: "model/gltf-binary",
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error("[hunyuan3d] Storage upload failed:", uploadError);
+          return j({ error: `Upload failed: ${uploadError.message}` }, 500);
+        }
+
+        const { data: { publicUrl } } = supabaseAdmin.storage
+          .from(bucketName)
+          .getPublicUrl(filePath);
+
+        console.log(`[hunyuan3d] Successfully re-mirrored to: ${publicUrl}`);
+
+        // Update generation_tasks
+        await supabaseAdmin
+          .from("generation_tasks")
+          .update({ model_glb_url: publicUrl })
+          .eq("id", task.id);
+
+        // Update designs table
+        await supabaseAdmin
+          .from("designs")
+          .update({ chosen_glb_url: publicUrl })
+          .eq("generation_task_id", task.id);
+
+        return j({ success: true, model_glb_url: publicUrl });
+      } catch (e) {
+        console.error("[hunyuan3d] Re-mirror error:", e);
+        return j({ error: e instanceof Error ? e.message : String(e) }, 500);
+      }
+    }
+
     return j({ error: "invalid action" }, 400);
   } catch (e) {
     console.error("[hunyuan3d] Unhandled error:", e);
