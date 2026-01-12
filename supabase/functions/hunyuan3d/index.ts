@@ -333,23 +333,38 @@ serve(async (req) => {
           // Mirror GLB to storage if possible
           if (finalModelUrl) {
             try {
-              const bucket = "design-files"; 
-              const path = `${task.user_id}/${task.id}.glb`;
+              const bucketName = "design-files"; 
+              const filePath = `${task.id}/model.glb`; // Organized by taskId
               
+              console.log(`[hunyuan3d] Fetching GLB from: ${finalModelUrl}`);
               const res = await fetch(finalModelUrl);
+              
               if (res.ok) {
-                const bytes = new Uint8Array(await res.arrayBuffer());
-                const { error: uploadErr } = await supabaseAdmin.storage.from(bucket).upload(path, bytes, {
-                  contentType: "model/gltf-binary",
-                  upsert: true,
-                });
+                const fileBuffer = new Uint8Array(await res.arrayBuffer());
+                console.log(`[hunyuan3d] Downloaded ${fileBuffer.length} bytes, uploading to ${bucketName}/${filePath}`);
                 
-                if (!uploadErr) {
-                  const publicData = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
-                  finalModelUrl = publicData.data.publicUrl;
-                } else {
-                  console.error("[hunyuan3d] Storage upload failed, using original URL:", uploadErr);
+                // 1. Upload/Overwrite the file
+                const { error: uploadError } = await supabaseAdmin.storage
+                  .from(bucketName)
+                  .upload(filePath, fileBuffer, {
+                    contentType: "model/gltf-binary",
+                    upsert: true, // Crucial for retries to overwrite old files
+                  });
+                
+                if (uploadError) {
+                  console.error("[hunyuan3d] Storage upload failed:", uploadError);
+                  throw uploadError;
                 }
+                
+                // 2. Explicitly construct the Public URL (bucket is public)
+                const { data: { publicUrl } } = supabaseAdmin.storage
+                  .from(bucketName)
+                  .getPublicUrl(filePath);
+                
+                console.log(`[hunyuan3d] Successfully mirrored to: ${publicUrl}`);
+                finalModelUrl = publicUrl;
+              } else {
+                console.error(`[hunyuan3d] Failed to fetch GLB: ${res.status} ${res.statusText}`);
               }
             } catch (e) {
               console.error("[hunyuan3d] Mirror failed, using original URL:", e);
