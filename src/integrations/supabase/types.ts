@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           design_id: string
           id: string
+          print_file_url: string | null
           quantity: number
           snapshot: Json | null
           user_id: string
@@ -27,6 +28,7 @@ export type Database = {
           created_at?: string
           design_id: string
           id?: string
+          print_file_url?: string | null
           quantity?: number
           snapshot?: Json | null
           user_id: string
@@ -35,6 +37,7 @@ export type Database = {
           created_at?: string
           design_id?: string
           id?: string
+          print_file_url?: string | null
           quantity?: number
           snapshot?: Json | null
           user_id?: string
@@ -114,12 +117,15 @@ export type Database = {
       }
       designs: {
         Row: {
+          asset_transform: Json | null
+          attached_asset_id: string | null
           chosen_glb_url: string | null
           chosen_thumbnail_url: string | null
           created_at: string
           generation_task_id: string | null
           id: string
           is_published: boolean | null
+          layout_type: string | null
           name: string
           params: Json
           preview_url: string | null
@@ -130,12 +136,15 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          asset_transform?: Json | null
+          attached_asset_id?: string | null
           chosen_glb_url?: string | null
           chosen_thumbnail_url?: string | null
           created_at?: string
           generation_task_id?: string | null
           id?: string
           is_published?: boolean | null
+          layout_type?: string | null
           name: string
           params?: Json
           preview_url?: string | null
@@ -146,12 +155,15 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          asset_transform?: Json | null
+          attached_asset_id?: string | null
           chosen_glb_url?: string | null
           chosen_thumbnail_url?: string | null
           created_at?: string
           generation_task_id?: string | null
           id?: string
           is_published?: boolean | null
+          layout_type?: string | null
           name?: string
           params?: Json
           preview_url?: string | null
@@ -162,6 +174,13 @@ export type Database = {
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "designs_attached_asset_id_fkey"
+            columns: ["attached_asset_id"]
+            isOneToOne: false
+            referencedRelation: "generation_tasks"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "designs_generation_task_id_fkey"
             columns: ["generation_task_id"]
