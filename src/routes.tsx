@@ -12,6 +12,7 @@ const MyDesigns = lazy(() => import("@/pages/MyDesigns"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const AdminOrders = lazy(() => import("@/pages/AdminOrders"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const TestHybrid = lazy(() => import("@/pages/TestHybrid"));
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -47,6 +48,7 @@ export const router = createBrowserRouter([
       { path: "design/:id", element: <DesignView /> },
       { path: "auth", element: <SuspenseWrapper><Auth /></SuspenseWrapper> },
       { path: "admin/orders", element: <SuspenseWrapper><AdminOrders /></SuspenseWrapper> },
+      { path: "test-hybrid", element: <SuspenseWrapper><TestHybrid /></SuspenseWrapper> },
 
       // Legacy redirects
       { path: "customize-classic", element: <Navigate to="/create" replace /> },
