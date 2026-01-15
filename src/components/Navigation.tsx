@@ -9,6 +9,7 @@ import {
 import { User, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
+import lumoLogo from '@/assets/lumo-logo-new.png'
 
 const Navigation = () => {
   const { user, signOut } = useAuth()
@@ -38,14 +39,9 @@ const Navigation = () => {
         <div className="flex items-center gap-6">
           <button
             onClick={() => navigate('/')}
-            className="flex items-center gap-1"
+            className="flex items-center"
           >
-            <span className="text-xl font-bold">
-              <span className="text-red-500">L</span>
-              <span className="text-blue-500">U</span>
-              <span className="text-yellow-500">M</span>
-              <span className="text-teal-500">O</span>
-            </span>
+            <img src={lumoLogo} alt="LUMO" className="h-8 w-auto" />
           </button>
           <div className="hidden md:flex items-center gap-4">
             <Button
