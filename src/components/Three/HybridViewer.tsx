@@ -21,6 +21,7 @@ export interface AssetTransform {
 
 interface HybridViewerProps {
   modelUrl: string
+  baseModelUrl?: string // URL for the carabiner/keyring GLB model
   initialTransform?: AssetTransform
   onTransformChange?: (transform: AssetTransform) => void
   manualScale?: number
@@ -32,6 +33,9 @@ export interface HybridViewerHandle {
   resetCamera: () => void
   triggerAutoFit: () => void
 }
+
+// Default carabiner model URL from Supabase storage
+const DEFAULT_CARABINER_URL = 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/product-images/models/keyring-carabiner.glb'
 
 // Carabiner dimensions (in 3D units, roughly matching cm)
 const CARABINER_WIDTH = 1.5
@@ -46,64 +50,114 @@ const DEFAULT_TRANSFORM: AssetTransform = {
   scale: [1, 1, 1]
 }
 
-// Chrome/Metal material properties
-const CHROME_MATERIAL = {
-  color: '#E8E8E8',
-  metalness: 0.95,
-  roughness: 0.05
+// The static Carabiner Ring base - loads actual GLB model
+function CarabinerModel({ url }: { url: string }) {
+  const gltf = useGLTF(url, true)
+  const modelRef = useRef<THREE.Group>(null)
+  const [isNormalized, setIsNormalized] = useState(false)
+
+  // Auto-normalize the carabiner to fit the expected dimensions
+  useLayoutEffect(() => {
+    if (gltf.scene && modelRef.current && !isNormalized) {
+      // Measure the loaded model
+      const box = new THREE.Box3().setFromObject(gltf.scene)
+      const size = new THREE.Vector3()
+      box.getSize(size)
+      const center = new THREE.Vector3()
+      box.getCenter(center)
+      
+      // Target: 3.0 units height (matching CARABINER_HEIGHT)
+      const maxDim = Math.max(size.x, size.y, size.z)
+      const targetScale = maxDim > 0 ? CARABINER_HEIGHT / maxDim : 1
+      
+      // Apply scale and center
+      modelRef.current.scale.set(targetScale, targetScale, targetScale)
+      
+      // Position so bottom of carabiner is near y=0, with attachment point accessible
+      // Offset to center horizontally and position vertically
+      modelRef.current.position.set(
+        -center.x * targetScale,
+        1.5 - (center.y * targetScale), // Center at y=1.5 like the procedural version
+        -center.z * targetScale
+      )
+      
+      setIsNormalized(true)
+      console.log('[CarabinerModel] Normalized:', { 
+        originalSize: { x: size.x.toFixed(2), y: size.y.toFixed(2), z: size.z.toFixed(2) },
+        scale: targetScale.toFixed(3)
+      })
+    }
+  }, [gltf.scene, isNormalized])
+
+  return (
+    <group ref={modelRef}>
+      <primitive object={gltf.scene.clone()} />
+    </group>
+  )
 }
 
-// The static Carabiner Ring base (1.5cm width x 3.0cm height)
-function CarabinerRing() {
+// Fallback procedural carabiner (used if GLB fails to load)
+function CarabinerRingFallback() {
   const halfWidth = CARABINER_WIDTH / 2
   const halfHeight = CARABINER_HEIGHT / 2
   const tubeRadius = 0.08
   
   return (
     <group position={[0, 1.5, 0]}>
-      {/* Main carabiner body - capsule/pill shape approximation */}
       {/* Left vertical bar */}
       <mesh position={[-halfWidth + tubeRadius, 0, 0]}>
         <capsuleGeometry args={[tubeRadius, halfHeight * 2 - tubeRadius * 4, 8, 16]} />
-        <meshStandardMaterial {...CHROME_MATERIAL} />
+        <meshStandardMaterial color="#E8E8E8" metalness={0.95} roughness={0.05} />
       </mesh>
       
       {/* Right vertical bar */}
       <mesh position={[halfWidth - tubeRadius, 0, 0]}>
         <capsuleGeometry args={[tubeRadius, halfHeight * 2 - tubeRadius * 4, 8, 16]} />
-        <meshStandardMaterial {...CHROME_MATERIAL} />
+        <meshStandardMaterial color="#E8E8E8" metalness={0.95} roughness={0.05} />
       </mesh>
       
       {/* Top curved connector */}
       <mesh position={[0, halfHeight - tubeRadius * 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[halfWidth - tubeRadius, tubeRadius, 12, 24, Math.PI]} />
-        <meshStandardMaterial {...CHROME_MATERIAL} />
+        <meshStandardMaterial color="#E8E8E8" metalness={0.95} roughness={0.05} />
       </mesh>
       
       {/* Bottom curved connector */}
       <mesh position={[0, -halfHeight + tubeRadius * 2, 0]} rotation={[Math.PI / 2, 0, Math.PI]}>
         <torusGeometry args={[halfWidth - tubeRadius, tubeRadius, 12, 24, Math.PI]} />
-        <meshStandardMaterial {...CHROME_MATERIAL} />
+        <meshStandardMaterial color="#E8E8E8" metalness={0.95} roughness={0.05} />
       </mesh>
       
-      {/* Gate mechanism (the spring-loaded part) */}
+      {/* Gate mechanism */}
       <mesh position={[halfWidth - tubeRadius * 2, halfHeight * 0.3, 0]}>
         <boxGeometry args={[tubeRadius * 1.5, halfHeight * 0.8, tubeRadius * 2]} />
-        <meshStandardMaterial {...CHROME_MATERIAL} roughness={0.1} />
+        <meshStandardMaterial color="#E8E8E8" metalness={0.95} roughness={0.1} />
       </mesh>
       
-      {/* Bottom attachment loop for charm */}
+      {/* Bottom attachment loop */}
       <mesh position={[0, -halfHeight - 0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[0.12, 0.03, 12, 24]} />
-        <meshStandardMaterial {...CHROME_MATERIAL} />
+        <meshStandardMaterial color="#E8E8E8" metalness={0.95} roughness={0.05} />
       </mesh>
       
       {/* Small connector ring */}
       <mesh position={[0, -halfHeight - 0.35, 0]}>
         <sphereGeometry args={[0.04, 12, 12]} />
-        <meshStandardMaterial {...CHROME_MATERIAL} />
+        <meshStandardMaterial color="#E8E8E8" metalness={0.95} roughness={0.05} />
       </mesh>
     </group>
+  )
+}
+
+// Loading placeholder for the carabiner model
+function CarabinerLoading() {
+  return (
+    <Html center position={[0, 1.5, 0]}>
+      <div className="flex items-center gap-2 bg-background/90 px-3 py-2 rounded-lg shadow-lg">
+        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">Loading base...</span>
+      </div>
+    </Html>
   )
 }
 
@@ -333,12 +387,13 @@ const HybridScene = forwardRef<
   { resetCamera: () => void; triggerAutoFit: () => void },
   {
     modelUrl: string
+    baseModelUrl: string
     transform: AssetTransform
     onTransformChange: (transform: AssetTransform) => void
     transformMode: 'translate' | 'rotate' | 'scale'
     manualScaleMultiplier: number
   }
->(({ modelUrl, transform, onTransformChange, transformMode, manualScaleMultiplier }, ref) => {
+>(({ modelUrl, baseModelUrl, transform, onTransformChange, transformMode, manualScaleMultiplier }, ref) => {
   const controlsRef = useRef<any>(null)
   const [fitTrigger, setFitTrigger] = useState(0)
 
@@ -364,8 +419,12 @@ const HybridScene = forwardRef<
       <pointLight position={[-5, -5, 5]} intensity={0.3} />
       
       <Center disableY>
-        {/* Static carabiner base */}
-        <CarabinerRing />
+        {/* Static carabiner base - load from GLB with fallback */}
+        <Suspense fallback={<CarabinerLoading />}>
+          <ErrorBoundary fallback={<CarabinerRingFallback />}>
+            <CarabinerModel url={baseModelUrl} />
+          </ErrorBoundary>
+        </Suspense>
         
         {/* AI model with transform controls */}
         <Suspense fallback={<ModelLoading />}>
@@ -450,6 +509,7 @@ function FloatingToolbar({
 // Main exported component
 const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({ 
   modelUrl, 
+  baseModelUrl = DEFAULT_CARABINER_URL,
   initialTransform,
   onTransformChange,
   manualScale = 1,
@@ -510,6 +570,7 @@ const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({
         <HybridScene 
           ref={sceneRef}
           modelUrl={modelUrl}
+          baseModelUrl={baseModelUrl}
           transform={transform}
           onTransformChange={handleTransformChange}
           transformMode={transformMode}
