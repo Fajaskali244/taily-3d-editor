@@ -26,9 +26,9 @@ const SAMPLE_MODELS = [
 ]
 
 const DEFAULT_TRANSFORM: AssetTransform = {
-  position: [0, 0.3, 0],
+  position: [0, -2.0, 0],
   rotation: [0, 0, 0],
-  scale: [0.5, 0.5, 0.5]
+  scale: [1, 1, 1]
 }
 
 export default function TestHybrid() {
@@ -39,6 +39,7 @@ export default function TestHybrid() {
   const [modelUrl, setModelUrl] = useState(SAMPLE_MODELS[0].url)
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [transform, setTransform] = useState<AssetTransform>(DEFAULT_TRANSFORM)
+  const [manualScale, setManualScale] = useState(1.0)
   const [isDragging, setIsDragging] = useState(false)
 
   const handleFileSelect = useCallback((file: File) => {
@@ -55,9 +56,11 @@ export default function TestHybrid() {
     const blobUrl = URL.createObjectURL(file)
     setModelUrl(blobUrl)
     setUploadedFileName(file.name)
+    setManualScale(1.0) // Reset manual scale on new upload
+    setTransform(DEFAULT_TRANSFORM) // Reset transform
     toast({
       title: 'Model loaded',
-      description: `${file.name} is now displayed`
+      description: `${file.name} is now displayed. Auto-fitting...`
     })
   }, [toast])
 
@@ -86,6 +89,8 @@ export default function TestHybrid() {
   const handleSampleSelect = (url: string) => {
     setModelUrl(url)
     setUploadedFileName(null)
+    setManualScale(1.0) // Reset manual scale
+    setTransform(DEFAULT_TRANSFORM) // Reset transform
   }
 
   const handleSaveConfig = () => {
@@ -99,10 +104,17 @@ export default function TestHybrid() {
 
   const handleResetPosition = () => {
     setTransform(DEFAULT_TRANSFORM)
+    setManualScale(1.0)
+    // Trigger auto-fit via ref
+    viewerRef.current?.triggerAutoFit()
     toast({
       title: 'Position reset',
-      description: 'Charm returned to default position'
+      description: 'Charm re-fitted to default position'
     })
+  }
+
+  const handleManualScaleChange = (value: number) => {
+    setManualScale(value)
   }
 
   const handleTransformInputChange = (
@@ -131,6 +143,7 @@ export default function TestHybrid() {
             modelUrl={modelUrl}
             initialTransform={transform}
             onTransformChange={setTransform}
+            manualScale={manualScale}
             className="h-full w-full min-h-[500px]"
           />
         </div>
@@ -210,6 +223,33 @@ export default function TestHybrid() {
               <CardTitle className="text-base">Inspector</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Manual Scale Slider */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                    Manual Scale Override
+                  </Label>
+                  <span className="text-xs font-mono text-muted-foreground">
+                    {manualScale.toFixed(1)}x
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="10"
+                  step="0.1"
+                  value={manualScale}
+                  onChange={(e) => handleManualScaleChange(parseFloat(e.target.value))}
+                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>0.1x</span>
+                  <span>10x</span>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Position */}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wide">
@@ -259,7 +299,7 @@ export default function TestHybrid() {
               {/* Scale */}
               <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Scale
+                  Scale (Auto-Fit Result)
                 </Label>
                 <div className="grid grid-cols-3 gap-2">
                   {transform.scale.map((val, i) => (
