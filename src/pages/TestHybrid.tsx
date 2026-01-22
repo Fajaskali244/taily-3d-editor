@@ -2,7 +2,6 @@ import { useState, useRef, useCallback } from 'react'
 import Navigation from '@/components/Navigation'
 import HybridViewer, { AssetTransform, HybridViewerHandle } from '@/components/Three/HybridViewer'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -39,7 +38,6 @@ export default function TestHybrid() {
   const [modelUrl, setModelUrl] = useState(SAMPLE_MODELS[0].url)
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
   const [transform, setTransform] = useState<AssetTransform>(DEFAULT_TRANSFORM)
-  const [manualScale, setManualScale] = useState(1.0)
   const [isDragging, setIsDragging] = useState(false)
 
   const handleFileSelect = useCallback((file: File) => {
@@ -56,11 +54,10 @@ export default function TestHybrid() {
     const blobUrl = URL.createObjectURL(file)
     setModelUrl(blobUrl)
     setUploadedFileName(file.name)
-    setManualScale(1.0) // Reset manual scale on new upload
-    setTransform(DEFAULT_TRANSFORM) // Reset transform
+    setTransform(DEFAULT_TRANSFORM)
     toast({
       title: 'Model loaded',
-      description: `${file.name} is now displayed. Auto-fitting...`
+      description: `${file.name} is now displayed`
     })
   }, [toast])
 
@@ -89,8 +86,7 @@ export default function TestHybrid() {
   const handleSampleSelect = (url: string) => {
     setModelUrl(url)
     setUploadedFileName(null)
-    setManualScale(1.0) // Reset manual scale
-    setTransform(DEFAULT_TRANSFORM) // Reset transform
+    setTransform(DEFAULT_TRANSFORM)
   }
 
   const handleSaveConfig = () => {
@@ -104,32 +100,12 @@ export default function TestHybrid() {
 
   const handleResetPosition = () => {
     setTransform(DEFAULT_TRANSFORM)
-    setManualScale(1.0)
-    // Trigger auto-fit via ref
     viewerRef.current?.triggerAutoFit()
     toast({
       title: 'Position reset',
       description: 'Charm re-fitted to default position'
     })
   }
-
-  const handleManualScaleChange = (value: number) => {
-    setManualScale(value)
-  }
-
-  const handleTransformInputChange = (
-    axis: 'position' | 'rotation' | 'scale',
-    index: number,
-    value: string
-  ) => {
-    const numValue = parseFloat(value) || 0
-    setTransform(prev => ({
-      ...prev,
-      [axis]: prev[axis].map((v, i) => i === index ? numValue : v) as [number, number, number]
-    }))
-  }
-
-  const axisLabels = ['X', 'Y', 'Z']
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -143,19 +119,18 @@ export default function TestHybrid() {
             modelUrl={modelUrl}
             initialTransform={transform}
             onTransformChange={setTransform}
-            manualScale={manualScale}
             className="h-full w-full min-h-[500px]"
           />
         </div>
 
         {/* Right Sidebar */}
-        <div className="w-80 border-l bg-card p-4 overflow-y-auto">
+        <div className="w-72 border-l bg-card p-4 overflow-y-auto">
           {/* Section 1: Assets */}
           <Card className="mb-4">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Package className="w-4 h-4" />
-                Assets
+                Charm
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -217,112 +192,7 @@ export default function TestHybrid() {
             </CardContent>
           </Card>
 
-          {/* Section 2: Inspector */}
-          <Card className="mb-4">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Inspector</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Manual Scale Slider */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                    Manual Scale Override
-                  </Label>
-                  <span className="text-xs font-mono text-muted-foreground">
-                    {manualScale.toFixed(1)}x
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="0.1"
-                  max="10"
-                  step="0.1"
-                  value={manualScale}
-                  onChange={(e) => handleManualScaleChange(parseFloat(e.target.value))}
-                  className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>0.1x</span>
-                  <span>10x</span>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Position */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Position
-                </Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {transform.position.map((val, i) => (
-                    <div key={`pos-${i}`} className="space-y-1">
-                      <Label className="text-xs font-medium text-center block">
-                        {axisLabels[i]}
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={val.toFixed(2)}
-                        onChange={(e) => handleTransformInputChange('position', i, e.target.value)}
-                        className="h-8 text-xs text-center"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rotation */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Rotation (degrees)
-                </Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {transform.rotation.map((val, i) => (
-                    <div key={`rot-${i}`} className="space-y-1">
-                      <Label className="text-xs font-medium text-center block">
-                        {axisLabels[i]}
-                      </Label>
-                      <Input
-                        type="number"
-                        step="15"
-                        value={(val * 180 / Math.PI).toFixed(1)}
-                        onChange={(e) => handleTransformInputChange('rotation', i, String((parseFloat(e.target.value) || 0) * Math.PI / 180))}
-                        className="h-8 text-xs text-center"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Scale */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                  Scale (Auto-Fit Result)
-                </Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {transform.scale.map((val, i) => (
-                    <div key={`scale-${i}`} className="space-y-1">
-                      <Label className="text-xs font-medium text-center block">
-                        {axisLabels[i]}
-                      </Label>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        min="0.1"
-                        value={val.toFixed(2)}
-                        onChange={(e) => handleTransformInputChange('scale', i, e.target.value)}
-                        className="h-8 text-xs text-center"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Section 3: Actions */}
+          {/* Section 2: Actions */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Actions</CardTitle>
