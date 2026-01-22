@@ -1,176 +1,311 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import Navigation from '@/components/Navigation'
-import HybridViewer, { AssetTransform } from '@/components/Three/HybridViewer'
+import HybridViewer, { AssetTransform, HybridViewerHandle } from '@/components/Three/HybridViewer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
-import { Copy, Check, ExternalLink } from 'lucide-react'
+import { Upload, Save, RotateCcw, Package, FileBox } from 'lucide-react'
 
 // Sample test models - using publicly available GLB files
 const SAMPLE_MODELS = [
   {
-    name: 'Duck (GLTF Sample)',
+    name: 'Duck',
     url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb'
   },
   {
-    name: 'Box (GLTF Sample)',
+    name: 'Box',
     url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Box/glTF-Binary/Box.glb'
   },
   {
-    name: 'Avocado (GLTF Sample)',
+    name: 'Avocado',
     url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Avocado/glTF-Binary/Avocado.glb'
   }
 ]
 
+const DEFAULT_TRANSFORM: AssetTransform = {
+  position: [0, 0.3, 0],
+  rotation: [0, 0, 0],
+  scale: [0.5, 0.5, 0.5]
+}
+
 export default function TestHybrid() {
   const { toast } = useToast()
+  const viewerRef = useRef<HybridViewerHandle>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
   const [modelUrl, setModelUrl] = useState(SAMPLE_MODELS[0].url)
-  const [customUrl, setCustomUrl] = useState('')
-  const [transform, setTransform] = useState<AssetTransform>({
-    position: [0, 0.3, 0],
-    rotation: [0, 0, 0],
-    scale: [0.5, 0.5, 0.5]
-  })
-  const [copied, setCopied] = useState(false)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
+  const [transform, setTransform] = useState<AssetTransform>(DEFAULT_TRANSFORM)
+  const [isDragging, setIsDragging] = useState(false)
 
-  const handleCopyTransform = () => {
-    const json = JSON.stringify(transform, null, 2)
-    navigator.clipboard.writeText(json)
-    setCopied(true)
-    toast({
-      title: 'Copied!',
-      description: 'Transform JSON copied to clipboard'
-    })
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const handleLoadCustomUrl = () => {
-    if (customUrl.trim()) {
-      setModelUrl(customUrl.trim())
+  const handleFileSelect = useCallback((file: File) => {
+    const ext = file.name.toLowerCase()
+    if (!ext.endsWith('.glb') && !ext.endsWith('.gltf')) {
       toast({
-        title: 'Loading model...',
-        description: 'Custom model URL set'
+        title: 'Invalid file type',
+        description: 'Please upload a .glb or .gltf file',
+        variant: 'destructive'
       })
+      return
     }
+
+    const blobUrl = URL.createObjectURL(file)
+    setModelUrl(blobUrl)
+    setUploadedFileName(file.name)
+    toast({
+      title: 'Model loaded',
+      description: `${file.name} is now displayed`
+    })
+  }, [toast])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    
+    const file = e.dataTransfer.files[0]
+    if (file) handleFileSelect(file)
+  }, [handleFileSelect])
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
   }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFileSelect(file)
+  }
+
+  const handleSampleSelect = (url: string) => {
+    setModelUrl(url)
+    setUploadedFileName(null)
+  }
+
+  const handleSaveConfig = () => {
+    const config = JSON.stringify(transform, null, 2)
+    navigator.clipboard.writeText(config)
+    toast({
+      title: 'Configuration saved',
+      description: 'Transform data copied to clipboard'
+    })
+  }
+
+  const handleResetPosition = () => {
+    setTransform(DEFAULT_TRANSFORM)
+    toast({
+      title: 'Position reset',
+      description: 'Charm returned to default position'
+    })
+  }
+
+  const handleTransformInputChange = (
+    axis: 'position' | 'rotation' | 'scale',
+    index: number,
+    value: string
+  ) => {
+    const numValue = parseFloat(value) || 0
+    setTransform(prev => ({
+      ...prev,
+      [axis]: prev[axis].map((v, i) => i === index ? numValue : v) as [number, number, number]
+    }))
+  }
+
+  const axisLabels = ['X', 'Y', 'Z']
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
       
-      <div className="max-w-7xl mx-auto p-6 pt-24">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Hybrid Viewer Test</h1>
-          <p className="text-muted-foreground mt-2">
-            Test the assembly editor with different 3D models. Position the charm on the keyring.
-          </p>
+      <div className="flex-1 flex pt-16">
+        {/* Main Canvas Area */}
+        <div className="flex-1 p-4">
+          <HybridViewer 
+            ref={viewerRef}
+            modelUrl={modelUrl}
+            initialTransform={transform}
+            onTransformChange={setTransform}
+            className="h-full w-full min-h-[500px]"
+          />
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Main viewer - takes up 2 columns */}
-          <div className="lg:col-span-2">
-            <HybridViewer 
-              modelUrl={modelUrl}
-              initialTransform={transform}
-              onTransformChange={setTransform}
-              className="h-[600px] w-full"
-            />
-          </div>
+        {/* Right Sidebar */}
+        <div className="w-80 border-l bg-card p-4 overflow-y-auto">
+          {/* Section 1: Assets */}
+          <Card className="mb-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                Assets
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* File Upload Dropzone */}
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                  isDragging 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".glb,.gltf"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
+                <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm font-medium">Upload Custom Charm</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Drag & drop or click to browse
+                </p>
+                <p className="text-xs text-muted-foreground">.glb or .gltf</p>
+              </div>
 
-          {/* Controls sidebar */}
-          <div className="space-y-4">
-            {/* Model selector */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Sample Models</CardTitle>
-                <CardDescription>Select a test model</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {SAMPLE_MODELS.map((model) => (
-                  <Button
-                    key={model.name}
-                    variant={modelUrl === model.url ? 'default' : 'outline'}
-                    className="w-full justify-start"
-                    onClick={() => setModelUrl(model.url)}
-                  >
-                    {model.name}
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Custom URL input */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Custom Model</CardTitle>
-                <CardDescription>Load your own GLB file</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="customUrl">GLB URL</Label>
-                  <Input
-                    id="customUrl"
-                    value={customUrl}
-                    onChange={(e) => setCustomUrl(e.target.value)}
-                    placeholder="https://example.com/model.glb"
-                  />
+              {uploadedFileName && (
+                <div className="flex items-center gap-2 p-2 bg-muted rounded-lg">
+                  <FileBox className="w-4 h-4 text-primary" />
+                  <span className="text-sm truncate flex-1">{uploadedFileName}</span>
                 </div>
-                <Button 
-                  onClick={handleLoadCustomUrl}
-                  disabled={!customUrl.trim()}
-                  className="w-full"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Load Custom Model
-                </Button>
-              </CardContent>
-            </Card>
+              )}
 
-            {/* Transform output */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Transform Data</CardTitle>
-                <CardDescription>
-                  Current position for <code>asset_transform</code> column
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <pre className="bg-muted p-3 rounded-lg text-xs overflow-auto max-h-40">
-                  {JSON.stringify(transform, null, 2)}
-                </pre>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleCopyTransform}
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 mr-2 text-green-500" />
-                  ) : (
-                    <Copy className="w-4 h-4 mr-2" />
-                  )}
-                  {copied ? 'Copied!' : 'Copy JSON'}
-                </Button>
-              </CardContent>
-            </Card>
+              <Separator />
 
-            {/* Usage instructions */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">How to Use</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside">
-                  <li>Select <strong>Move</strong>, <strong>Rotate</strong>, or <strong>Scale</strong></li>
-                  <li>Drag the gizmo arrows to transform</li>
-                  <li>Orbit camera by dragging the background</li>
-                  <li>Scroll to zoom in/out</li>
-                  <li>Copy the transform JSON when satisfied</li>
-                </ol>
-              </CardContent>
-            </Card>
-          </div>
+              {/* Sample Models */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Sample Models
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {SAMPLE_MODELS.map((model) => (
+                    <Button
+                      key={model.name}
+                      variant={modelUrl === model.url ? 'default' : 'outline'}
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => handleSampleSelect(model.url)}
+                    >
+                      {model.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 2: Inspector */}
+          <Card className="mb-4">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Inspector</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Position */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Position
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {transform.position.map((val, i) => (
+                    <div key={`pos-${i}`} className="space-y-1">
+                      <Label className="text-xs font-medium text-center block">
+                        {axisLabels[i]}
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={val.toFixed(2)}
+                        onChange={(e) => handleTransformInputChange('position', i, e.target.value)}
+                        className="h-8 text-xs text-center"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Rotation */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Rotation (degrees)
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {transform.rotation.map((val, i) => (
+                    <div key={`rot-${i}`} className="space-y-1">
+                      <Label className="text-xs font-medium text-center block">
+                        {axisLabels[i]}
+                      </Label>
+                      <Input
+                        type="number"
+                        step="15"
+                        value={(val * 180 / Math.PI).toFixed(1)}
+                        onChange={(e) => handleTransformInputChange('rotation', i, String((parseFloat(e.target.value) || 0) * Math.PI / 180))}
+                        className="h-8 text-xs text-center"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Scale */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  Scale
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {transform.scale.map((val, i) => (
+                    <div key={`scale-${i}`} className="space-y-1">
+                      <Label className="text-xs font-medium text-center block">
+                        {axisLabels[i]}
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        min="0.1"
+                        value={val.toFixed(2)}
+                        onChange={(e) => handleTransformInputChange('scale', i, e.target.value)}
+                        className="h-8 text-xs text-center"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 3: Actions */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button 
+                onClick={handleSaveConfig}
+                className="w-full"
+                size="lg"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Configuration
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleResetPosition}
+                className="w-full"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reset Position
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

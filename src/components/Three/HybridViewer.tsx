@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState, useEffect, useCallback } from 'react'
+import { Suspense, useRef, useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { 
   OrbitControls, 
@@ -9,7 +9,7 @@ import {
   Html
 } from '@react-three/drei'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { AlertTriangle, Loader2 } from 'lucide-react'
+import { AlertTriangle, Loader2, Move, RotateCw, Scaling, RotateCcw } from 'lucide-react'
 import * as THREE from 'three'
 
 // Types for asset transform
@@ -24,6 +24,10 @@ interface HybridViewerProps {
   initialTransform?: AssetTransform
   onTransformChange?: (transform: AssetTransform) => void
   className?: string
+}
+
+export interface HybridViewerHandle {
+  resetCamera: () => void
 }
 
 // Default transform - positions the charm below the ring
@@ -173,17 +177,25 @@ function ModelError() {
 }
 
 // The inner scene content
-function HybridScene({ 
-  modelUrl, 
-  transform, 
-  onTransformChange,
-  transformMode
-}: {
-  modelUrl: string
-  transform: AssetTransform
-  onTransformChange: (transform: AssetTransform) => void
-  transformMode: 'translate' | 'rotate' | 'scale'
-}) {
+const HybridScene = forwardRef<
+  { resetCamera: () => void },
+  {
+    modelUrl: string
+    transform: AssetTransform
+    onTransformChange: (transform: AssetTransform) => void
+    transformMode: 'translate' | 'rotate' | 'scale'
+  }
+>(({ modelUrl, transform, onTransformChange, transformMode }, ref) => {
+  const controlsRef = useRef<any>(null)
+
+  useImperativeHandle(ref, () => ({
+    resetCamera: () => {
+      if (controlsRef.current) {
+        controlsRef.current.reset()
+      }
+    }
+  }))
+
   return (
     <>
       <ambientLight intensity={0.5} />
@@ -209,6 +221,7 @@ function HybridScene({
       
       <Environment preset="studio" />
       <OrbitControls 
+        ref={controlsRef}
         makeDefault
         enablePan={true}
         enableZoom={true}
@@ -217,83 +230,92 @@ function HybridScene({
       />
     </>
   )
+})
+
+HybridScene.displayName = 'HybridScene'
+
+// Floating toolbar component
+function FloatingToolbar({ 
+  transformMode, 
+  onModeChange 
+}: { 
+  transformMode: 'translate' | 'rotate' | 'scale'
+  onModeChange: (mode: 'translate' | 'rotate' | 'scale') => void 
+}) {
+  const modes = [
+    { mode: 'translate' as const, icon: Move, label: 'Move' },
+    { mode: 'rotate' as const, icon: RotateCw, label: 'Rotate' },
+    { mode: 'scale' as const, icon: Scaling, label: 'Scale' }
+  ]
+
+  return (
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+      <div className="flex bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border overflow-hidden">
+        {modes.map(({ mode, icon: Icon, label }) => (
+          <button
+            key={mode}
+            onClick={() => onModeChange(mode)}
+            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+              transformMode === mode 
+                ? 'bg-primary text-primary-foreground' 
+                : 'hover:bg-muted text-foreground'
+            }`}
+            title={label}
+          >
+            <Icon className="w-4 h-4" />
+            <span className="hidden sm:inline">{label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 // Main exported component
-export default function HybridViewer({ 
+const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({ 
   modelUrl, 
   initialTransform,
   onTransformChange,
   className 
-}: HybridViewerProps) {
+}, ref) => {
   const [transform, setTransform] = useState<AssetTransform>(
     initialTransform ?? DEFAULT_TRANSFORM
   )
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
+  const sceneRef = useRef<{ resetCamera: () => void }>(null)
+
+  useImperativeHandle(ref, () => ({
+    resetCamera: () => {
+      sceneRef.current?.resetCamera()
+    }
+  }))
 
   const handleTransformChange = useCallback((newTransform: AssetTransform) => {
     setTransform(newTransform)
     onTransformChange?.(newTransform)
   }, [onTransformChange])
 
+  const handleResetCamera = () => {
+    sceneRef.current?.resetCamera()
+  }
+
   return (
     <div className={`relative ${className ?? ''}`}>
-      {/* Transform mode controls */}
-      <div className="absolute top-4 left-4 z-10 flex gap-2">
-        <button
-          onClick={() => setTransformMode('translate')}
-          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-            transformMode === 'translate' 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-background/80 hover:bg-background text-foreground border'
-          }`}
-        >
-          Move
-        </button>
-        <button
-          onClick={() => setTransformMode('rotate')}
-          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-            transformMode === 'rotate' 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-background/80 hover:bg-background text-foreground border'
-          }`}
-        >
-          Rotate
-        </button>
-        <button
-          onClick={() => setTransformMode('scale')}
-          className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-            transformMode === 'scale' 
-              ? 'bg-primary text-primary-foreground' 
-              : 'bg-background/80 hover:bg-background text-foreground border'
-          }`}
-        >
-          Scale
-        </button>
-      </div>
+      {/* Floating toolbar */}
+      <FloatingToolbar 
+        transformMode={transformMode} 
+        onModeChange={setTransformMode} 
+      />
 
-      {/* Transform values display */}
-      <div className="absolute bottom-4 left-4 z-10 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg text-xs font-mono space-y-1 border">
-        <div className="text-muted-foreground">
-          <span className="text-foreground font-semibold">Pos:</span>{' '}
-          {transform.position.map(v => v.toFixed(2)).join(', ')}
-        </div>
-        <div className="text-muted-foreground">
-          <span className="text-foreground font-semibold">Rot:</span>{' '}
-          {transform.rotation.map(v => (v * 180 / Math.PI).toFixed(1)).join('°, ')}°
-        </div>
-        <div className="text-muted-foreground">
-          <span className="text-foreground font-semibold">Scale:</span>{' '}
-          {transform.scale.map(v => v.toFixed(2)).join(', ')}
-        </div>
-      </div>
-
-      {/* Instructions */}
-      <div className="absolute top-4 right-4 z-10 bg-background/90 backdrop-blur-sm px-3 py-2 rounded-lg text-xs max-w-48 border">
-        <p className="text-muted-foreground">
-          <span className="font-semibold text-foreground">Tip:</span> Use the gizmo to position the charm. Drag to orbit the camera.
-        </p>
-      </div>
+      {/* Reset camera button */}
+      <button
+        onClick={handleResetCamera}
+        className="absolute bottom-4 right-4 z-10 flex items-center gap-2 px-3 py-2 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border text-sm font-medium hover:bg-muted transition-colors"
+        title="Reset Camera"
+      >
+        <RotateCcw className="w-4 h-4" />
+        <span className="hidden sm:inline">Reset View</span>
+      </button>
 
       {/* 3D Canvas */}
       <Canvas 
@@ -301,6 +323,7 @@ export default function HybridViewer({
         className="bg-muted/20 rounded-xl"
       >
         <HybridScene 
+          ref={sceneRef}
           modelUrl={modelUrl}
           transform={transform}
           onTransformChange={handleTransformChange}
@@ -309,7 +332,11 @@ export default function HybridViewer({
       </Canvas>
     </div>
   )
-}
+})
+
+HybridViewer.displayName = 'HybridViewer'
+
+export default HybridViewer
 
 // Export the transform type for use in other components
 export type { HybridViewerProps }
