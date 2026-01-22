@@ -30,55 +30,75 @@ export interface HybridViewerHandle {
   resetCamera: () => void
 }
 
-// Default transform - positions the charm below the ring
+// Carabiner dimensions (in 3D units, roughly matching cm)
+const CARABINER_WIDTH = 1.5
+const CARABINER_HEIGHT = 3.0
+const CHARM_MAX_SIZE = 3.0
+const CHARM_INITIAL_Y = -2.0
+
+// Default transform - positions the charm below the carabiner
 const DEFAULT_TRANSFORM: AssetTransform = {
-  position: [0, 0.3, 0],
+  position: [0, CHARM_INITIAL_Y, 0],
   rotation: [0, 0, 0],
-  scale: [0.5, 0.5, 0.5]
+  scale: [1, 1, 1]
 }
 
-// The static Taily Ring base
-function TailyRing() {
+// Chrome/Metal material properties
+const CHROME_MATERIAL = {
+  color: '#E8E8E8',
+  metalness: 0.95,
+  roughness: 0.05
+}
+
+// The static Carabiner Ring base (1.5cm width x 3.0cm height)
+function CarabinerRing() {
+  const halfWidth = CARABINER_WIDTH / 2
+  const halfHeight = CARABINER_HEIGHT / 2
+  const tubeRadius = 0.08
+  
   return (
-    <group>
-      {/* Main keyring torus */}
-      <mesh position={[0, 1.5, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.6, 0.08, 16, 48]} />
-        <meshStandardMaterial 
-          color="#C0C0C0" 
-          metalness={0.85} 
-          roughness={0.15} 
-        />
+    <group position={[0, 1.5, 0]}>
+      {/* Main carabiner body - capsule/pill shape approximation */}
+      {/* Left vertical bar */}
+      <mesh position={[-halfWidth + tubeRadius, 0, 0]}>
+        <capsuleGeometry args={[tubeRadius, halfHeight * 2 - tubeRadius * 4, 8, 16]} />
+        <meshStandardMaterial {...CHROME_MATERIAL} />
       </mesh>
       
-      {/* Connection loop at bottom of ring */}
-      <mesh position={[0, 0.95, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.15, 0.03, 12, 24]} />
-        <meshStandardMaterial 
-          color="#B8B8B8" 
-          metalness={0.85} 
-          roughness={0.15} 
-        />
+      {/* Right vertical bar */}
+      <mesh position={[halfWidth - tubeRadius, 0, 0]}>
+        <capsuleGeometry args={[tubeRadius, halfHeight * 2 - tubeRadius * 4, 8, 16]} />
+        <meshStandardMaterial {...CHROME_MATERIAL} />
       </mesh>
       
-      {/* Chain link connector */}
-      <mesh position={[0, 0.7, 0]}>
-        <cylinderGeometry args={[0.025, 0.025, 0.3, 12]} />
-        <meshStandardMaterial 
-          color="#C0C0C0" 
-          metalness={0.85} 
-          roughness={0.15} 
-        />
+      {/* Top curved connector */}
+      <mesh position={[0, halfHeight - tubeRadius * 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[halfWidth - tubeRadius, tubeRadius, 12, 24, Math.PI]} />
+        <meshStandardMaterial {...CHROME_MATERIAL} />
       </mesh>
       
-      {/* Bottom attachment point (where charm connects) */}
-      <mesh position={[0, 0.5, 0]}>
+      {/* Bottom curved connector */}
+      <mesh position={[0, -halfHeight + tubeRadius * 2, 0]} rotation={[Math.PI / 2, 0, Math.PI]}>
+        <torusGeometry args={[halfWidth - tubeRadius, tubeRadius, 12, 24, Math.PI]} />
+        <meshStandardMaterial {...CHROME_MATERIAL} />
+      </mesh>
+      
+      {/* Gate mechanism (the spring-loaded part) */}
+      <mesh position={[halfWidth - tubeRadius * 2, halfHeight * 0.3, 0]}>
+        <boxGeometry args={[tubeRadius * 1.5, halfHeight * 0.8, tubeRadius * 2]} />
+        <meshStandardMaterial {...CHROME_MATERIAL} roughness={0.1} />
+      </mesh>
+      
+      {/* Bottom attachment loop for charm */}
+      <mesh position={[0, -halfHeight - 0.15, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.12, 0.03, 12, 24]} />
+        <meshStandardMaterial {...CHROME_MATERIAL} />
+      </mesh>
+      
+      {/* Small connector ring */}
+      <mesh position={[0, -halfHeight - 0.35, 0]}>
         <sphereGeometry args={[0.04, 12, 12]} />
-        <meshStandardMaterial 
-          color="#A0A0A0" 
-          metalness={0.9} 
-          roughness={0.1} 
-        />
+        <meshStandardMaterial {...CHROME_MATERIAL} />
       </mesh>
     </group>
   )
@@ -96,6 +116,19 @@ function ModelLoading() {
   )
 }
 
+// Calculate auto-normalization scale to fit within max bounding box
+function calculateAutoScale(scene: THREE.Object3D): number {
+  const box = new THREE.Box3().setFromObject(scene)
+  const size = new THREE.Vector3()
+  box.getSize(size)
+  
+  const maxDimension = Math.max(size.x, size.y, size.z)
+  if (maxDimension === 0) return 1
+  
+  // Scale to fit within CHARM_MAX_SIZE
+  return CHARM_MAX_SIZE / maxDimension
+}
+
 // The AI-generated model with transform controls
 function AIModel({ 
   url, 
@@ -111,17 +144,40 @@ function AIModel({
   const gltf = useGLTF(url, true)
   const meshRef = useRef<THREE.Group>(null)
   const controlsRef = useRef<any>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Apply initial transform
+  // Auto-normalize on first load
   useEffect(() => {
-    if (meshRef.current) {
+    if (meshRef.current && gltf.scene && !isInitialized) {
+      // Calculate auto-scale to fit within max size
+      const autoScale = calculateAutoScale(gltf.scene)
+      
+      // Apply auto-normalized transform
+      meshRef.current.position.set(0, CHARM_INITIAL_Y, 0)
+      meshRef.current.rotation.set(0, 0, 0)
+      meshRef.current.scale.set(autoScale, autoScale, autoScale)
+      
+      // Update parent state with normalized values
+      const normalizedTransform: AssetTransform = {
+        position: [0, CHARM_INITIAL_Y, 0],
+        rotation: [0, 0, 0],
+        scale: [autoScale, autoScale, autoScale]
+      }
+      onTransformChange(normalizedTransform)
+      setIsInitialized(true)
+    }
+  }, [gltf.scene, isInitialized, onTransformChange])
+
+  // Apply transform changes from parent (e.g., inspector inputs)
+  useEffect(() => {
+    if (meshRef.current && isInitialized) {
       meshRef.current.position.set(...transform.position)
       meshRef.current.rotation.set(...transform.rotation)
       meshRef.current.scale.set(...transform.scale)
     }
-  }, []) // Only run on mount
+  }, [transform, isInitialized])
 
-  // Handle transform changes from controls
+  // Handle transform changes from gizmo controls
   const handleChange = useCallback(() => {
     if (meshRef.current) {
       const newTransform: AssetTransform = {
@@ -157,7 +213,7 @@ function AIModel({
           object={meshRef.current}
           mode={transformMode}
           onObjectChange={handleChange}
-          size={0.7}
+          size={1.0}
         />
       )}
     </>
@@ -203,8 +259,8 @@ const HybridScene = forwardRef<
       <pointLight position={[-5, -5, 5]} intensity={0.3} />
       
       <Center disableY>
-        {/* Static ring base */}
-        <TailyRing />
+        {/* Static carabiner base */}
+        <CarabinerRing />
         
         {/* AI model with transform controls */}
         <Suspense fallback={<ModelLoading />}>
@@ -317,9 +373,9 @@ const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({
         <span className="hidden sm:inline">Reset View</span>
       </button>
 
-      {/* 3D Canvas */}
+      {/* 3D Canvas - camera positioned to see both 3cm carabiner and charm */}
       <Canvas 
-        camera={{ position: [2, 2, 4], fov: 45 }}
+        camera={{ position: [0, 0, 8], fov: 45 }}
         className="bg-muted/20 rounded-xl"
       >
         <HybridScene 
