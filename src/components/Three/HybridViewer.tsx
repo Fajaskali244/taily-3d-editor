@@ -319,9 +319,9 @@ function FloatingToolbar({
         <Slider
           value={[verticalOffset]}
           onValueChange={([value]) => onVerticalOffsetChange(value)}
-          min={-2}
-          max={2}
-          step={0.1}
+          min={-2.5}
+          max={1.0}
+          step={0.05}
           className="w-32"
         />
         <span className="text-xs text-muted-foreground w-10 text-right">
