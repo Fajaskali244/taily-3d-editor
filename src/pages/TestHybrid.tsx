@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, Save, RotateCcw, Package, FileBox } from 'lucide-react'
+import { useGLTF } from '@react-three/drei'
 
 /**
  * LUMO SAMPLE CHARM MODELS
@@ -231,3 +232,8 @@ export default function TestHybrid() {
     </div>
   )
 }
+
+// Preload sample models to prevent lag when switching
+SAMPLE_MODELS.forEach((model) => {
+  useGLTF.preload(model.url)
+})

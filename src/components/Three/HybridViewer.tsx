@@ -7,11 +7,12 @@ import {
   Resize,
   Gltf,
   TransformControls,
-  Html
+  Html,
+  useGLTF
 } from '@react-three/drei'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AlertTriangle, Loader2, Move, RotateCw, Scaling, RotateCcw, Maximize2 } from 'lucide-react'
-import * as THREE from 'three'
+import type { Group } from 'three'
 
 // Types for asset transform
 export interface AssetTransform {
@@ -130,7 +131,7 @@ function AICharm({
   onTransformChange: (transform: AssetTransform) => void
   transformMode: 'translate' | 'rotate' | 'scale'
 }) {
-  const groupRef = useRef<THREE.Group>(null)
+  const groupRef = useRef<Group>(null)
   const controlsRef = useRef<any>(null)
 
   // Handle transform changes from gizmo
