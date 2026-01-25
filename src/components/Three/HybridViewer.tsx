@@ -7,11 +7,11 @@ import {
   Resize,
   Gltf,
   TransformControls,
-  Html,
-  useGLTF
+  Html
 } from '@react-three/drei'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { AlertTriangle, Loader2, Move, RotateCw, Scaling, RotateCcw, Maximize2 } from 'lucide-react'
+import { AlertTriangle, Loader2, Move, RotateCw, Scaling, RotateCcw, Maximize2, ArrowUpDown } from 'lucide-react'
+import { Slider } from '@/components/ui/slider'
 import type { Group } from 'three'
 
 // Types for asset transform
@@ -42,11 +42,11 @@ const DEFAULT_CARABINER_URL = ''
 
 // Scene dimensions
 const CHARM_TARGET_HEIGHT = 2.5
-const CHARM_HANG_POSITION: [number, number, number] = [0, -2.0, 0]
+const RING_POSITION: [number, number, number] = [0, 1.2, 0]
 
-// Default transform
+// Default transform - charm starts at origin, <Center top> aligns its top there
 const DEFAULT_TRANSFORM: AssetTransform = {
-  position: CHARM_HANG_POSITION,
+  position: [0, 0, 0],
   rotation: [0, 0, 0],
   scale: [1, 1, 1]
 }
@@ -56,7 +56,7 @@ function CarabinerRingFallback() {
   const tubeRadius = 0.08
   
   return (
-    <group position={[0, 1.5, 0]}>
+    <group position={RING_POSITION}>
       {/* Left vertical bar */}
       <mesh position={[-0.67, 0, 0]}>
         <capsuleGeometry args={[tubeRadius, 2.5, 8, 16]} />
@@ -217,20 +217,22 @@ const HybridScene = forwardRef<
       <directionalLight position={[5, 10, 5]} intensity={1} castShadow />
       <pointLight position={[-5, -5, 5]} intensity={0.3} />
       
-      {/* Static Ring Base */}
-      <Center disableY>
-        {baseModelUrl ? (
-          <Suspense fallback={<ModelLoading />}>
-            <ErrorBoundary fallback={<CarabinerRingFallback />}>
-              <Resize height scale={3.0}>
-                <Gltf src={baseModelUrl} />
-              </Resize>
-            </ErrorBoundary>
-          </Suspense>
-        ) : (
-          <CarabinerRingFallback />
-        )}
-      </Center>
+      {/* Static Ring Base - positioned higher so bottom loop is near y=0 */}
+      <group position={RING_POSITION}>
+        <Center disableY>
+          {baseModelUrl ? (
+            <Suspense fallback={<ModelLoading />}>
+              <ErrorBoundary fallback={<CarabinerRingFallback />}>
+                <Resize height scale={3.0}>
+                  <Gltf src={baseModelUrl} />
+                </Resize>
+              </ErrorBoundary>
+            </Suspense>
+          ) : (
+            <CarabinerRingFallback />
+          )}
+        </Center>
+      </group>
       
       {/* Movable AI Charm */}
       <Suspense fallback={<ModelLoading />}>
@@ -259,15 +261,19 @@ const HybridScene = forwardRef<
 
 HybridScene.displayName = 'HybridScene'
 
-// Floating toolbar
+// Floating toolbar with vertical fit slider
 function FloatingToolbar({ 
   transformMode, 
   onModeChange,
-  onAutoFit
+  onAutoFit,
+  verticalOffset,
+  onVerticalOffsetChange
 }: { 
   transformMode: 'translate' | 'rotate' | 'scale'
   onModeChange: (mode: 'translate' | 'rotate' | 'scale') => void
   onAutoFit: () => void
+  verticalOffset: number
+  onVerticalOffsetChange: (value: number) => void
 }) {
   const modes = [
     { mode: 'translate' as const, icon: Move, label: 'Move' },
@@ -276,33 +282,52 @@ function FloatingToolbar({
   ]
 
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-      <div className="flex bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border overflow-hidden">
-        {modes.map(({ mode, icon: Icon, label }) => (
-          <button
-            key={mode}
-            onClick={() => onModeChange(mode)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
-              transformMode === mode 
-                ? 'bg-primary text-primary-foreground' 
-                : 'hover:bg-muted text-foreground'
-            }`}
-            title={label}
-          >
-            <Icon className="w-4 h-4" />
-            <span className="hidden sm:inline">{label}</span>
-          </button>
-        ))}
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2">
+      <div className="flex gap-2">
+        <div className="flex bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border overflow-hidden">
+          {modes.map(({ mode, icon: Icon, label }) => (
+            <button
+              key={mode}
+              onClick={() => onModeChange(mode)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                transformMode === mode 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'hover:bg-muted text-foreground'
+              }`}
+              title={label}
+            >
+              <Icon className="w-4 h-4" />
+              <span className="hidden sm:inline">{label}</span>
+            </button>
+          ))}
+        </div>
+        
+        <button
+          onClick={onAutoFit}
+          className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-secondary-foreground backdrop-blur-sm rounded-lg shadow-lg border text-sm font-medium hover:bg-secondary/80 transition-colors"
+          title="Reset Position"
+        >
+          <Maximize2 className="w-4 h-4" />
+          <span className="hidden sm:inline">Reset</span>
+        </button>
       </div>
       
-      <button
-        onClick={onAutoFit}
-        className="flex items-center gap-2 px-4 py-2.5 bg-secondary text-secondary-foreground backdrop-blur-sm rounded-lg shadow-lg border text-sm font-medium hover:bg-secondary/80 transition-colors"
-        title="Reset Position"
-      >
-        <Maximize2 className="w-4 h-4" />
-        <span className="hidden sm:inline">Reset</span>
-      </button>
+      {/* Vertical Fit Slider */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg border">
+        <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground whitespace-nowrap">Height</span>
+        <Slider
+          value={[verticalOffset]}
+          onValueChange={([value]) => onVerticalOffsetChange(value)}
+          min={-2}
+          max={2}
+          step={0.1}
+          className="w-32"
+        />
+        <span className="text-xs text-muted-foreground w-10 text-right">
+          {verticalOffset.toFixed(1)}
+        </span>
+      </div>
     </div>
   )
 }
@@ -321,6 +346,9 @@ const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
   const sceneRef = useRef<{ resetCamera: () => void; triggerAutoFit: () => void }>(null)
 
+  // Extract vertical offset from transform position (y-axis)
+  const verticalOffset = transform.position[1]
+
   useImperativeHandle(ref, () => ({
     resetCamera: () => sceneRef.current?.resetCamera(),
     triggerAutoFit: () => sceneRef.current?.triggerAutoFit()
@@ -331,12 +359,24 @@ const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({
     onTransformChange?.(newTransform)
   }, [onTransformChange])
 
+  // Handle vertical offset slider changes - updates position and persists to transform
+  const handleVerticalOffsetChange = useCallback((value: number) => {
+    const newTransform: AssetTransform = {
+      ...transform,
+      position: [transform.position[0], value, transform.position[2]]
+    }
+    setTransform(newTransform)
+    onTransformChange?.(newTransform)
+  }, [transform, onTransformChange])
+
   return (
     <div className={`relative ${className ?? ''}`}>
       <FloatingToolbar 
         transformMode={transformMode} 
         onModeChange={setTransformMode}
         onAutoFit={() => sceneRef.current?.triggerAutoFit()}
+        verticalOffset={verticalOffset}
+        onVerticalOffsetChange={handleVerticalOffsetChange}
       />
 
       <button
