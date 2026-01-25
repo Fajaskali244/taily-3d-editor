@@ -34,8 +34,15 @@ export interface HybridViewerHandle {
   triggerAutoFit: () => void
 }
 
-// Default carabiner model URL from Supabase storage
-const DEFAULT_CARABINER_URL = 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/product-images/models/keyring-carabiner.glb'
+/**
+ * Default carabiner model URL
+ * 
+ * Replace with your Supabase Storage URL once uploaded:
+ * Format: https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/product-images/models/keyring-carabiner.glb
+ * 
+ * Currently using a fallback that triggers the procedural geometry
+ */
+const DEFAULT_CARABINER_URL = ''  // Empty = will use procedural fallback
 
 // Carabiner dimensions (in 3D units, roughly matching cm)
 const CARABINER_WIDTH = 1.5
@@ -419,12 +426,16 @@ const HybridScene = forwardRef<
       <pointLight position={[-5, -5, 5]} intensity={0.3} />
       
       <Center disableY>
-        {/* Static carabiner base - load from GLB with fallback */}
-        <Suspense fallback={<CarabinerLoading />}>
-          <ErrorBoundary fallback={<CarabinerRingFallback />}>
-            <CarabinerModel url={baseModelUrl} />
-          </ErrorBoundary>
-        </Suspense>
+        {/* Static carabiner base - load from GLB with fallback, or use procedural if no URL */}
+        {baseModelUrl ? (
+          <Suspense fallback={<CarabinerLoading />}>
+            <ErrorBoundary fallback={<CarabinerRingFallback />}>
+              <CarabinerModel url={baseModelUrl} />
+            </ErrorBoundary>
+          </Suspense>
+        ) : (
+          <CarabinerRingFallback />
+        )}
         
         {/* AI model with transform controls */}
         <Suspense fallback={<ModelLoading />}>

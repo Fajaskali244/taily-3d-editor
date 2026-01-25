@@ -8,27 +8,29 @@ import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, Save, RotateCcw, Package, FileBox } from 'lucide-react'
 
-// Lumo sample charm models from Supabase storage
+/**
+ * LUMO SAMPLE CHARM MODELS
+ * 
+ * Replace these URLs with your actual Supabase Storage URLs:
+ * Format: https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/{folder}/{filename}.glb
+ * 
+ * To upload models:
+ * 1. Go to Supabase Dashboard > Storage > design-files bucket
+ * 2. Upload your .glb files
+ * 3. Copy the public URL and paste below
+ */
 const SAMPLE_MODELS = [
   {
-    name: 'Axolotl',
-    url: 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/1ac02421-564b-4201-9675-62316c65f9b7/Axolotl.glb'
+    name: 'Duck',
+    url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Duck/glTF-Binary/Duck.glb'
   },
   {
-    name: 'Capybara',
-    url: 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/1ac02421-564b-4201-9675-62316c65f9b7/Capybara.glb'
+    name: 'Avocado',
+    url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Avocado/glTF-Binary/Avocado.glb'
   },
   {
-    name: 'Shiba Inu',
-    url: 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/1ac02421-564b-4201-9675-62316c65f9b7/Shiba-Inu.glb'
-  },
-  {
-    name: 'Nightfury',
-    url: 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/1ac02421-564b-4201-9675-62316c65f9b7/Nightfury.glb'
-  },
-  {
-    name: 'Yeti',
-    url: 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/1ac02421-564b-4201-9675-62316c65f9b7/Yeti.glb'
+    name: 'Lantern',
+    url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/main/2.0/Lantern/glTF-Binary/Lantern.glb'
   }
 ]
 
