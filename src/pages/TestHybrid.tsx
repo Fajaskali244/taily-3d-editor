@@ -23,7 +23,7 @@ import { useGLTF } from '@react-three/drei'
 const SAMPLE_MODELS = [
   {
     name: 'Axolotl',
-    url: 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/Axolotl.glb'
+    url: 'https://npvkyiujvxyrrqdyrhas.supabase.co/storage/v1/object/public/design-files/1ac02421-564b-4201-9675-62316c65f9b7/Axolotl.glb'
   },
   {
     name: 'Capybara',
