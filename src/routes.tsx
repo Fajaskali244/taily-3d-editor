@@ -4,7 +4,6 @@ import { lazy, Suspense } from "react";
 // Eager-load critical pages
 import Index from "@/pages/Index";
 import Create from "@/pages/Create";
-import DesignView from "@/pages/DesignView";
 
 // Lazy-load secondary pages
 const Review = lazy(() => import("@/pages/Review"));
@@ -45,15 +44,13 @@ export const router = createBrowserRouter([
         },
       },
       { path: "my-designs", element: <SuspenseWrapper><MyDesigns /></SuspenseWrapper> },
-      { path: "design/:id", element: <DesignView /> },
       { path: "auth", element: <SuspenseWrapper><Auth /></SuspenseWrapper> },
       { path: "admin/orders", element: <SuspenseWrapper><AdminOrders /></SuspenseWrapper> },
       { path: "studio", element: <SuspenseWrapper><Studio /></SuspenseWrapper> },
 
-      // Legacy redirect for old test-hybrid URL
-      { path: "test-hybrid", element: <Navigate to="/studio" replace /> },
-
       // Legacy redirects
+      { path: "design/:id", element: <Navigate to="/my-designs" replace /> },
+      { path: "test-hybrid", element: <Navigate to="/studio" replace /> },
       { path: "customize-classic", element: <Navigate to="/create" replace /> },
       { path: "customize/*", element: <Navigate to="/create" replace /> },
       { path: "cart", element: <Navigate to="/my-designs" replace /> },

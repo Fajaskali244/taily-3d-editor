@@ -6,6 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Lumo v2.0 pricing - flat fee model
+const PRICING = {
+  base: 50000,     // Base keyring assembly price (IDR)
+  ai_fee: 20000    // Additional fee for AI-generated models
+}
+
 interface CheckoutRequest {
   cartItemIds: string[]
   userId: string
@@ -85,18 +91,30 @@ serve(async (req) => {
 
     if (cartError) throw cartError
 
-    // Compute pricing
-    const lines = (cartItems ?? []).map((ci) => {
-      const base = 35000
-      const params = ci.snapshot as any || {}
-      const placed = params.placed || []
+    // Get design layout_type for all items with design_id
+    const designIds = (cartItems ?? []).map(ci => ci.design_id).filter(Boolean)
+    let designLayoutTypes: Record<string, string> = {}
+    
+    if (designIds.length > 0) {
+      const { data: designs } = await supabaseAdmin
+        .from('designs')
+        .select('id, layout_type')
+        .in('id', designIds)
       
-      const beadCount = placed.filter((item: any) => item.kind === 'bead').length
-      const charmCount = placed.filter((item: any) => item.kind === 'charm').length
+      designLayoutTypes = Object.fromEntries(
+        (designs ?? []).map((d: any) => [d.id, d.layout_type])
+      )
+    }
+
+    // Calculate pricing with flat fee model
+    const lines = (cartItems ?? []).map((ci: any) => {
+      let unit = PRICING.base
       
-      const beads = beadCount * 7000
-      const charms = charmCount * 15000
-      const unit = base + beads + charms
+      // Add AI fee if hybrid layout (from design or snapshot)
+      const layoutType = designLayoutTypes[ci.design_id] || ci.snapshot?.layout_type
+      if (layoutType === 'hybrid') {
+        unit += PRICING.ai_fee
+      }
       
       return { 
         id: ci.id, 
@@ -174,7 +192,7 @@ serve(async (req) => {
         order_id: order.id,
         event: 'order_created',
         actor: 'system',
-        payload: { userEmail, subtotal, grand_total, itemCount: cartItems.length }
+        payload: { userEmail, subtotal, grand_total, itemCount: cartItems!.length }
       })
 
     // Clear cart items after successful order creation
@@ -182,6 +200,8 @@ serve(async (req) => {
       .from('cart_items')
       .delete()
       .in('id', cartItemIds)
+
+    console.log('Order created:', { orderId: order.id, grand_total, itemCount: cartItems!.length })
 
     const payUrl = `/orders/${order.id}/pay`
 
