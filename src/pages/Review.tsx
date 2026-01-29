@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Loader2, ArrowLeft, Check } from "lucide-react";
+import { Loader2, ArrowLeft, Check, Wand2 } from "lucide-react";
 import { useTaskPoller } from "@/hooks/useTaskPoller";
 import { GenerationProgress } from "@/components/GenerationProgress";
 import ModelViewer from "@/components/ModelViewer";
@@ -153,7 +153,7 @@ export default function ReviewPage() {
           </Card>
         </div>
 
-        <div className="flex gap-3 pt-4">
+        <div className="flex flex-wrap gap-3 pt-4">
           <Button
             size="lg"
             disabled={!isSucceeded || !task.model_glb_url || isApproving}
@@ -165,6 +165,16 @@ export default function ReviewPage() {
               <Check className="mr-2 h-4 w-4" />
             )}
             Approve for Print
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="lg"
+            disabled={!isSucceeded || !task.model_glb_url}
+            onClick={() => navigate(`/studio?taskId=${task.id}`)}
+          >
+            <Wand2 className="mr-2 h-4 w-4" />
+            Turn into Keychain
           </Button>
 
           <Button
