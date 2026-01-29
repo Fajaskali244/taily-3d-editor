@@ -6,49 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// IDR pricing constants
+// Lumo v2.0 pricing - flat fee model
 const PRICING = {
-  base: 25000,          // Basic keyring
-  premium: 35000,       // Premium keyring 
-  bead: 10000,          // Per bead
-  charm: 15000,         // Per charm
-  engraving: 10000      // Flat rate for engraving
-}
-
-type Snapshot = {
-  keyringId?: string
-  placed?: Array<{ kind: string; catalogId: string }>
-  params?: { colorTheme?: string }
-  pricing?: { subtotal: number; itemCount: number }
-}
-
-function isEmpty(v: any): boolean { 
-  return v == null || (typeof v === 'object' && Object.keys(v).length === 0) 
-}
-
-function calcUnitFromSnapshot(snapshot: any): number {
-  if (!snapshot || isEmpty(snapshot)) return PRICING.base
-  
-  // Handle normalized snapshot format from Designer
-  const params = snapshot as Snapshot
-  const placed = params.placed || []
-  
-  // Determine keyring type
-  const keyringId = params.keyringId || 'keyring-basic'
-  const isPremium = keyringId.includes('premium')
-  const base = isPremium ? PRICING.premium : PRICING.base
-  
-  // Calculate components from placed items
-  const beadCount = placed.filter((item: any) => item.kind === 'bead').length
-  const beads = beadCount * PRICING.bead
-  
-  const charmCount = placed.filter((item: any) => item.kind === 'charm').length  
-  const charms = charmCount * PRICING.charm
-  
-  // Engraving (check multiple possible locations)
-  const engraving = (snapshot.engraving?.text || params.params?.engraving?.text) ? PRICING.engraving : 0
-  
-  return base + beads + charms + engraving
+  base: 50000,     // Base keyring assembly price (IDR)
+  ai_fee: 20000    // Additional fee for AI-generated models
 }
 
 serve(async (req) => {
@@ -91,7 +52,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get cart items with design fallback
+    // Get cart items
     const { data: items, error } = await supabaseAdmin
       .from('cart_items')
       .select('id, quantity, snapshot, design_id')
@@ -99,37 +60,31 @@ serve(async (req) => {
 
     if (error) throw error
 
-    // For items with empty/missing snapshots, fetch design params as fallback
-    const itemsWithEmptySnapshots = (items ?? []).filter((item: any) => 
-      isEmpty(item.snapshot) || !item.snapshot?.placed?.length
-    )
+    // Get design layout_type for all items with design_id
+    const designIds = (items ?? []).map(i => i.design_id).filter(Boolean)
+    let designLayoutTypes: Record<string, string> = {}
     
-    let designParamsById: Record<string, any> = {}
-    if (itemsWithEmptySnapshots.length > 0) {
-      const designIds = itemsWithEmptySnapshots
-        .map((item: any) => item.design_id)
-        .filter(Boolean)
+    if (designIds.length > 0) {
+      const { data: designs } = await supabaseAdmin
+        .from('designs')
+        .select('id, layout_type')
+        .in('id', designIds)
       
-      if (designIds.length > 0) {
-        const { data: designs } = await supabaseAdmin
-          .from('designs')
-          .select('id, params')
-          .in('id', designIds)
-        
-        designParamsById = Object.fromEntries(
-          (designs ?? []).map((d: any) => [d.id, d.params])
-        )
-      }
+      designLayoutTypes = Object.fromEntries(
+        (designs ?? []).map((d: any) => [d.id, d.layout_type])
+      )
     }
 
+    // Calculate pricing with flat fee model
     const lines = (items ?? []).map((ci: any) => {
-      // Use snapshot or fallback to design params
-      let snapshot = ci.snapshot
-      if (isEmpty(snapshot) || !snapshot?.placed?.length) {
-        snapshot = designParamsById[ci.design_id] || {}
+      let unit = PRICING.base
+      
+      // Add AI fee if hybrid layout (from design or snapshot)
+      const layoutType = designLayoutTypes[ci.design_id] || ci.snapshot?.layout_type
+      if (layoutType === 'hybrid') {
+        unit += PRICING.ai_fee
       }
       
-      const unit = calcUnitFromSnapshot(snapshot)
       return { 
         id: ci.id, 
         qty: ci.quantity, 
@@ -152,6 +107,8 @@ serve(async (req) => {
       discount_total, 
       grand_total 
     }
+
+    console.log('Cart price calculated:', { itemCount: lines.length, subtotal, grand_total })
 
     return new Response(
       JSON.stringify(totals),
