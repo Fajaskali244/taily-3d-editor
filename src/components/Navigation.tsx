@@ -6,7 +6,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
-import { User, LogOut } from 'lucide-react'
+import { User, LogOut, Wand2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import lumoLogo from '@/assets/lumo-logo-new.png'
@@ -60,6 +60,17 @@ const Navigation = () => {
             >
               Galeri
             </Button>
+            {user && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-foreground hover:text-primary"
+                onClick={() => navigate('/studio')}
+              >
+                <Wand2 className="h-4 w-4 mr-1" />
+                Studio
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
