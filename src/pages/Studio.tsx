@@ -1,16 +1,23 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import Navigation from '@/components/Navigation'
 import HybridViewer, { AssetTransform, HybridViewerHandle } from '@/components/Three/HybridViewer'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { useToast } from '@/hooks/use-toast'
-import { Save, RotateCcw, ShoppingCart, Loader2, ArrowUpDown } from 'lucide-react'
+import { Save, RotateCcw, ShoppingCart, Loader2, ArrowUpDown, CreditCard } from 'lucide-react'
 import { useGLTF } from '@react-three/drei'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import type { Json } from '@/integrations/supabase/types'
 import { STOCK_MODELS, getStockModelBySlug, getDefaultStockModel, getStockModelUrls } from '@/lib/stockModels'
+import { formatMoney } from '@/lib/currency'
+
+// Lumo v2.0 pricing
+const PRICING = {
+  base: 50000,
+  ai_fee: 20000
+}
 
 // Helper to convert AssetTransform to Json-compatible format
 const transformToJson = (t: AssetTransform): Json => ({
@@ -58,6 +65,11 @@ export default function Studio() {
     thumbnail_url: string | null
     prompt: string | null
   } | null>(null)
+  const [isBuyingNow, setIsBuyingNow] = useState(false)
+
+  // Calculate price based on layout type
+  const isHybridLayout = !!taskId // AI-generated models are hybrid
+  const unitPrice = PRICING.base + (isHybridLayout ? PRICING.ai_fee : 0)
 
   // Set model name based on source
   useEffect(() => {
@@ -281,7 +293,7 @@ export default function Studio() {
         description: 'Your keychain has been added to your cart'
       })
 
-      navigate('/my-designs')
+      navigate('/cart')
     } catch (error) {
       console.error('Add to cart error:', error)
       toast({
@@ -291,6 +303,85 @@ export default function Studio() {
       })
     } finally {
       setIsAddingToCart(false)
+    }
+  }
+
+  // Buy Now - creates order immediately and goes to payment
+  const handleBuyNow = async () => {
+    if (!user) {
+      toast({
+        title: 'Sign in required',
+        description: 'Please sign in to purchase',
+        variant: 'destructive'
+      })
+      navigate('/auth')
+      return
+    }
+
+    setIsBuyingNow(true)
+    
+    try {
+      // First save the design
+      let currentDesignId = designId
+      
+      if (!currentDesignId) {
+        currentDesignId = await handleSaveConfig()
+        if (!currentDesignId) {
+          throw new Error('Failed to create design')
+        }
+      }
+
+      // Create a temporary cart item
+      const { data: cartItem, error: cartError } = await supabase
+        .from('cart_items')
+        .insert([{
+          user_id: user.id,
+          design_id: currentDesignId,
+          quantity: 1,
+          snapshot: {
+            layout_type: isHybridLayout ? 'hybrid' : 'standard',
+            asset_transform: transformToJson(transform),
+            model_url: modelUrl,
+            thumbnail_url: taskData?.thumbnail_url,
+            stock_id: stockId || null
+          } as Json
+        }])
+        .select('id')
+        .single()
+
+      if (cartError) throw cartError
+
+      // Create order directly
+      const { data, error } = await supabase.functions.invoke('checkout-create', {
+        body: {
+          cartItemIds: [cartItem.id],
+          userId: user.id,
+          userEmail: user.email
+        }
+      })
+
+      if (error) throw error
+
+      toast({
+        title: 'Order created!',
+        description: 'Redirecting to payment...'
+      })
+
+      // Navigate to payment
+      if (data.pay_url) {
+        navigate(data.pay_url)
+      } else {
+        navigate(`/orders/${data.order_id}/pay`)
+      }
+    } catch (error) {
+      console.error('Buy now error:', error)
+      toast({
+        title: 'Purchase failed',
+        description: error instanceof Error ? error.message : 'Please try again',
+        variant: 'destructive'
+      })
+    } finally {
+      setIsBuyingNow(false)
     }
   }
 
@@ -350,43 +441,67 @@ export default function Studio() {
 
           {/* Bottom Action Bar */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-            <div className="bg-background/95 backdrop-blur-sm rounded-xl p-3 shadow-lg border flex items-center gap-3">
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={handleResetPosition}
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
+            <div className="bg-background/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border flex flex-col items-center gap-3">
+              {/* Price Display */}
+              <div className="text-center">
+                <p className="text-2xl font-bold">{formatMoney(unitPrice)}</p>
+                <p className="text-xs text-muted-foreground">
+                  {isHybridLayout ? 'Includes AI generation fee' : 'Stock model'}
+                </p>
+              </div>
               
-              <Button 
-                variant="secondary"
-                size="sm"
-                onClick={() => handleSaveConfig()}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4 mr-2" />
-                )}
-                Save
-              </Button>
-              
-              <Button 
-                size="sm"
-                onClick={handleAddToCart}
-                disabled={isAddingToCart}
-                className="px-6"
-              >
-                {isAddingToCart ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                )}
-                Add to Cart
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetPosition}
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
+                
+                <Button 
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleSaveConfig()}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Save
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddToCart}
+                  disabled={isAddingToCart}
+                >
+                  {isAddingToCart ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                  )}
+                  Add to Cart
+                </Button>
+                
+                <Button 
+                  size="sm"
+                  onClick={handleBuyNow}
+                  disabled={isBuyingNow}
+                  className="px-6"
+                >
+                  {isBuyingNow ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <CreditCard className="w-4 h-4 mr-2" />
+                  )}
+                  Buy Now
+                </Button>
+              </div>
             </div>
           </div>
         </div>
