@@ -307,6 +307,18 @@ function FloatingToolbar({
   )
 }
 
+// Canvas loading skeleton
+function CanvasLoading() {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center bg-muted/30 rounded-xl">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">Initializing 3D viewer...</span>
+      </div>
+    </div>
+  )
+}
+
 // Main component
 const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({ 
   modelUrl, 
@@ -319,6 +331,7 @@ const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({
     initialTransform ?? DEFAULT_TRANSFORM
   )
   const [transformMode, setTransformMode] = useState<'translate' | 'rotate' | 'scale'>('translate')
+  const [isCanvasReady, setIsCanvasReady] = useState(false)
   const sceneRef = useRef<{ resetCamera: () => void; triggerAutoFit: () => void }>(null)
 
   useImperativeHandle(ref, () => ({
@@ -333,6 +346,8 @@ const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({
 
   return (
     <div className={`relative ${className ?? ''}`}>
+      {!isCanvasReady && <CanvasLoading />}
+      
       <FloatingToolbar 
         transformMode={transformMode} 
         onModeChange={setTransformMode}
@@ -351,6 +366,7 @@ const HybridViewer = forwardRef<HybridViewerHandle, HybridViewerProps>(({
       <Canvas 
         camera={{ position: [0, 0, 8], fov: 45 }}
         className="bg-muted/20 rounded-xl"
+        onCreated={() => setIsCanvasReady(true)}
       >
         <HybridScene 
           ref={sceneRef}
