@@ -6,10 +6,16 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
-import { User, LogOut, Wand2 } from 'lucide-react'
+import { User, LogOut, Wand2, ShoppingCart } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useToast } from '@/hooks/use-toast'
 import lumoLogo from '@/assets/lumo-logo-new.png'
+
+// Preload functions for route chunks
+const preloadStudio = () => import('@/pages/Studio')
+const preloadCreate = () => import('@/pages/Create')
+const preloadCart = () => import('@/pages/Cart')
+const preloadReview = () => import('@/pages/Review')
 
 const Navigation = () => {
   const { user, signOut } = useAuth()
@@ -49,6 +55,7 @@ const Navigation = () => {
               size="sm"
               className="text-foreground hover:text-primary"
               onClick={() => navigate('/create')}
+              onMouseEnter={preloadCreate}
             >
               Cara Kerja
             </Button>
@@ -66,6 +73,7 @@ const Navigation = () => {
                 size="sm"
                 className="text-foreground hover:text-primary"
                 onClick={() => navigate('/studio')}
+                onMouseEnter={preloadStudio}
               >
                 <Wand2 className="h-4 w-4 mr-1" />
                 Studio
@@ -81,6 +89,17 @@ const Navigation = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {user && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-foreground hover:text-primary"
+              onClick={() => navigate('/cart')}
+              onMouseEnter={preloadCart}
+            >
+              <ShoppingCart className="h-5 w-5" />
+            </Button>
+          )}
           {!user ? (
             <Button 
               onClick={() => navigate('/auth')} 
@@ -117,3 +136,6 @@ const Navigation = () => {
 }
 
 export default Navigation
+
+// Export preload functions for use elsewhere
+export { preloadStudio, preloadCreate, preloadCart, preloadReview }
