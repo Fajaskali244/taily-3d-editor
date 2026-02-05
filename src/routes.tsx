@@ -12,6 +12,7 @@ const Auth = lazy(() => import("@/pages/Auth"));
 const AdminOrders = lazy(() => import("@/pages/AdminOrders"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Studio = lazy(() => import("@/pages/Studio"));
+const Cart = lazy(() => import("@/pages/Cart"));
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -47,16 +48,16 @@ export const router = createBrowserRouter([
       { path: "auth", element: <SuspenseWrapper><Auth /></SuspenseWrapper> },
       { path: "admin/orders", element: <SuspenseWrapper><AdminOrders /></SuspenseWrapper> },
       { path: "studio", element: <SuspenseWrapper><Studio /></SuspenseWrapper> },
+      { path: "cart", element: <SuspenseWrapper><Cart /></SuspenseWrapper> },
 
       // Legacy redirects
       { path: "design/:id", element: <Navigate to="/my-designs" replace /> },
       { path: "test-hybrid", element: <Navigate to="/studio" replace /> },
       { path: "customize-classic", element: <Navigate to="/create" replace /> },
       { path: "customize/*", element: <Navigate to="/create" replace /> },
-      { path: "cart", element: <Navigate to="/my-designs" replace /> },
-      { path: "catalog", element: <Navigate to="/create" replace /> },
       { path: "designs", element: <Navigate to="/my-designs" replace /> },
       { path: "editor", element: <Navigate to="/create" replace /> },
+      { path: "catalog", element: <Navigate to="/create" replace /> },
 
       { path: "*", element: <SuspenseWrapper><NotFound /></SuspenseWrapper> },
     ],
